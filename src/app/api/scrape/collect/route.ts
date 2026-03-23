@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { ApifyClient } from "apify-client";
+import { getRunStatus, getDatasetItems } from "@/lib/apify/rest";
 import {
   transformTikTok,
   transformInstagram,
@@ -20,45 +20,29 @@ const transformerMap: Record<Platform, (raw: unknown[], accountId: string, avgRa
   linkedin: transformLinkedIn as (raw: unknown[], accountId: string, avgRate?: number) => SocialPost[],
 };
 
-/**
- * Checks all "running" scrape jobs, fetches completed results, and saves posts to DB.
- */
 export async function POST() {
   try {
     const tokenSetting = await prisma.setting.findUnique({
       where: { key: "apifyApiToken" },
     });
-
     if (!tokenSetting?.value) {
       return NextResponse.json({ error: "No API token" }, { status: 400 });
     }
+    const token = tokenSetting.value;
 
-    const client = new ApifyClient({ token: tokenSetting.value });
-
-    // Find all running jobs
     const runningJobs = await prisma.scrapeJob.findMany({
       where: { status: "running" },
     });
 
     if (runningJobs.length === 0) {
-      return NextResponse.json({ message: "No running jobs to collect", collected: 0 });
+      return NextResponse.json({ message: "No running jobs to collect", collected: 0, results: [] });
     }
 
     const results: { jobId: string; platform: string; status: string; postsCollected: number; error?: string }[] = [];
 
     for (const job of runningJobs) {
       try {
-        // Check run status
-        const run = await client.run(job.apifyRunId).get();
-
-        if (!run) {
-          await prisma.scrapeJob.update({
-            where: { id: job.id },
-            data: { status: "failed", errorMessage: "Run not found", completedAt: new Date() },
-          });
-          results.push({ jobId: job.id, platform: job.platform, status: "not_found", postsCollected: 0 });
-          continue;
-        }
+        const run = await getRunStatus(token, job.apifyRunId);
 
         if (run.status === "RUNNING" || run.status === "READY") {
           results.push({ jobId: job.id, platform: job.platform, status: "still_running", postsCollected: 0 });
@@ -68,15 +52,14 @@ export async function POST() {
         if (run.status !== "SUCCEEDED") {
           await prisma.scrapeJob.update({
             where: { id: job.id },
-            data: { status: "failed", errorMessage: `Run status: ${run.status}`, completedAt: new Date() },
+            data: { status: "failed", errorMessage: `Actor run status: ${run.status}`, completedAt: new Date() },
           });
           results.push({ jobId: job.id, platform: job.platform, status: run.status, postsCollected: 0 });
           continue;
         }
 
-        // Fetch dataset items
-        const dataset = client.dataset(run.defaultDatasetId);
-        const { items } = await dataset.listItems({ limit: 100 });
+        // Fetch results
+        const items = await getDatasetItems(token, run.datasetId, 100);
 
         const platform = job.platform as Platform;
         const transformer = transformerMap[platform];
@@ -120,25 +103,25 @@ export async function POST() {
                 accountId: job.accountId,
                 contentType: post.contentType,
                 caption: post.caption || "",
-                hashtags: post.hashtags,
-                mentions: post.mentions,
-                mediaUrls: post.mediaUrls,
+                hashtags: post.hashtags || [],
+                mentions: post.mentions || [],
+                mediaUrls: post.mediaUrls || [],
                 thumbnailUrl: post.thumbnailUrl,
                 permalink: post.permalink || "",
                 hookText: post.hookText || "",
-                hookType: post.hookType,
-                hookScore: post.hookScore,
-                likes: post.likes,
-                comments: post.comments,
-                shares: post.shares,
-                saves: post.saves,
-                views: post.views,
+                hookType: post.hookType || "other",
+                hookScore: post.hookScore || 0,
+                likes: post.likes || 0,
+                comments: post.comments || 0,
+                shares: post.shares || 0,
+                saves: post.saves || 0,
+                views: post.views || 0,
                 impressions: post.impressions,
                 reach: post.reach,
-                engagementRate: post.engagementRate,
-                viralityScore: post.viralityScore,
+                engagementRate: post.engagementRate || 0,
+                viralityScore: post.viralityScore || 0,
                 platformMeta: (post.platformMeta ?? {}) as Record<string, string>,
-                publishedAt: post.publishedAt,
+                publishedAt: post.publishedAt || new Date(),
               },
             });
             upserted++;
@@ -147,7 +130,6 @@ export async function POST() {
           }
         }
 
-        // Update job and account
         await prisma.scrapeJob.update({
           where: { id: job.id },
           data: { status: "succeeded", postsScraped: upserted, completedAt: new Date() },
@@ -160,24 +142,17 @@ export async function POST() {
 
         results.push({ jobId: job.id, platform: job.platform, status: "collected", postsCollected: upserted });
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : String(err);
-        console.error(`Failed to collect job ${job.id}:`, errorMessage);
-        results.push({ jobId: job.id, platform: job.platform, status: "error", postsCollected: 0, error: errorMessage });
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error(`Failed to collect job ${job.id}:`, msg);
+        results.push({ jobId: job.id, platform: job.platform, status: "error", postsCollected: 0, error: msg });
       }
     }
 
     const totalCollected = results.reduce((s, r) => s + r.postsCollected, 0);
 
-    return NextResponse.json({
-      success: true,
-      totalCollected,
-      results,
-    });
+    return NextResponse.json({ success: true, totalCollected, results });
   } catch (err) {
     console.error("Collect endpoint error:", err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Collection failed" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Collection failed" }, { status: 500 });
   }
 }
