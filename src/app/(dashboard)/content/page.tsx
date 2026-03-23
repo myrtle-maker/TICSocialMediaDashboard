@@ -1,0 +1,333 @@
+"use client";
+
+import { useMemo } from "react";
+import { useFilters } from "@/components/filters/filter-context";
+import {
+  getContentAnalysis,
+  getPostingHeatmap,
+  getHashtagPerformance,
+} from "@/lib/db";
+import { CONTENT_TYPE_LABELS } from "@/lib/constants";
+import { BaseChart } from "@/components/charts/base-chart";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { ExportCsvButton } from "@/components/shared/export-csv-button";
+import { formatNumber, formatPercentage } from "@/lib/utils";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} from "recharts";
+
+const COLORS = [
+  "#3b82f6",
+  "#10b981",
+  "#f59e0b",
+  "#ef4444",
+  "#8b5cf6",
+  "#ec4899",
+  "#06b6d4",
+  "#f97316",
+];
+
+const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+export default function ContentPage() {
+  const { filters } = useFilters();
+
+  const contentAnalysis = useMemo(
+    () => getContentAnalysis(filters),
+    [filters]
+  );
+  const heatmapData = useMemo(() => getPostingHeatmap(filters), [filters]);
+  const hashtagPerformance = useMemo(
+    () => getHashtagPerformance(filters),
+    [filters]
+  );
+
+  const barData = useMemo(
+    () =>
+      contentAnalysis.map((c) => ({
+        name: CONTENT_TYPE_LABELS[c.contentType],
+        avgEngagementRate: parseFloat(c.avgEngagementRate.toFixed(2)),
+        postCount: c.postCount,
+      })),
+    [contentAnalysis]
+  );
+
+  const pieData = useMemo(
+    () =>
+      contentAnalysis.map((c) => ({
+        name: CONTENT_TYPE_LABELS[c.contentType],
+        value: c.postCount,
+      })),
+    [contentAnalysis]
+  );
+
+  // Build heatmap grid: 7 days x 24 hours
+  const heatmapGrid = useMemo(() => {
+    const maxRate = Math.max(
+      ...heatmapData.map((h) => h.avgEngagementRate),
+      1
+    );
+    const grid: {
+      day: number;
+      hour: number;
+      rate: number;
+      count: number;
+      intensity: number;
+    }[][] = [];
+    for (let d = 0; d < 7; d++) {
+      const row: typeof grid[0] = [];
+      for (let h = 0; h < 24; h++) {
+        const cell = heatmapData.find((c) => c.day === d && c.hour === h);
+        const rate = cell?.avgEngagementRate ?? 0;
+        row.push({
+          day: d,
+          hour: h,
+          rate,
+          count: cell?.postCount ?? 0,
+          intensity: maxRate > 0 ? rate / maxRate : 0,
+        });
+      }
+      grid.push(row);
+    }
+    return grid;
+  }, [heatmapData]);
+
+  const hashtagCsvData = useMemo(
+    () =>
+      hashtagPerformance.map((h) => ({
+        hashtag: h.hashtag,
+        postCount: h.postCount,
+        avgEngagementRate: h.avgEngagementRate.toFixed(2),
+        totalViews: h.totalViews,
+      })),
+    [hashtagPerformance]
+  );
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-zinc-900">Content Analysis</h2>
+        <p className="text-sm text-zinc-500">
+          Understand which content types and posting patterns drive the most
+          engagement.
+        </p>
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Bar Chart: Avg Engagement Rate by Content Type */}
+        <BaseChart
+          title="Avg Engagement Rate by Content Type"
+          tooltip="Average engagement rate for each content type across filtered posts."
+          height={300}
+        >
+          <BarChart data={barData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
+            <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+            <YAxis
+              tick={{ fontSize: 11 }}
+              tickFormatter={(v: number) => `${v}%`}
+            />
+            <Tooltip
+              formatter={(value) => [`${value}%`, "Avg Rate"]}
+              contentStyle={{
+                borderRadius: 8,
+                border: "1px solid #e4e4e7",
+                fontSize: 12,
+              }}
+            />
+            <Bar dataKey="avgEngagementRate" radius={[4, 4, 0, 0]}>
+              {barData.map((_entry, index) => (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={COLORS[index % COLORS.length]}
+                />
+              ))}
+            </Bar>
+          </BarChart>
+        </BaseChart>
+
+        {/* Donut Chart: Content Type Distribution */}
+        <BaseChart
+          title="Content Type Distribution"
+          tooltip="Breakdown of posts by content type."
+          height={300}
+        >
+          <PieChart>
+            <Pie
+              data={pieData}
+              cx="50%"
+              cy="50%"
+              innerRadius={60}
+              outerRadius={100}
+              paddingAngle={3}
+              dataKey="value"
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              label={(props: any) =>
+                `${props.name} ${(props.percent * 100).toFixed(0)}%`
+              }
+              labelLine={false}
+            >
+              {pieData.map((_entry, index) => (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={COLORS[index % COLORS.length]}
+                />
+              ))}
+            </Pie>
+            <Tooltip
+              contentStyle={{
+                borderRadius: 8,
+                border: "1px solid #e4e4e7",
+                fontSize: 12,
+              }}
+            />
+            <Legend wrapperStyle={{ fontSize: 12 }} />
+          </PieChart>
+        </BaseChart>
+      </div>
+
+      {/* Posting Time Heatmap */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium">
+            Posting Time Heatmap
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="mb-3 text-xs text-zinc-500">
+            Engagement rate by day of week and hour (UTC). Darker cells indicate
+            higher engagement.
+          </p>
+          <div className="overflow-x-auto">
+            <div className="inline-block">
+              {/* Hour labels */}
+              <div className="flex">
+                <div className="w-12 shrink-0" />
+                {Array.from({ length: 24 }, (_, h) => (
+                  <div
+                    key={h}
+                    className="flex w-7 items-center justify-center text-[10px] text-zinc-400"
+                  >
+                    {h}
+                  </div>
+                ))}
+              </div>
+              {/* Grid rows */}
+              {heatmapGrid.map((row, dayIdx) => (
+                <div key={dayIdx} className="flex items-center">
+                  <div className="w-12 shrink-0 text-xs font-medium text-zinc-500">
+                    {DAY_LABELS[dayIdx]}
+                  </div>
+                  {row.map((cell) => (
+                    <div
+                      key={`${cell.day}-${cell.hour}`}
+                      className="m-0.5 h-6 w-6 rounded-sm transition-colors"
+                      style={{
+                        backgroundColor:
+                          cell.count === 0
+                            ? "#f4f4f5"
+                            : `rgba(59, 130, 246, ${
+                                0.1 + cell.intensity * 0.9
+                              })`,
+                      }}
+                      title={`${DAY_LABELS[cell.day]} ${cell.hour}:00 - Rate: ${cell.rate.toFixed(2)}%, Posts: ${cell.count}`}
+                    />
+                  ))}
+                </div>
+              ))}
+              {/* Legend */}
+              <div className="mt-3 flex items-center gap-2 text-[10px] text-zinc-500">
+                <span>Low</span>
+                <div className="flex">
+                  {[0.1, 0.3, 0.5, 0.7, 0.9].map((intensity) => (
+                    <div
+                      key={intensity}
+                      className="h-3 w-5 rounded-sm"
+                      style={{
+                        backgroundColor: `rgba(59, 130, 246, ${intensity})`,
+                      }}
+                    />
+                  ))}
+                </div>
+                <span>High</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Hashtag Performance Table */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-sm font-medium">
+            Hashtag Performance
+          </CardTitle>
+          <ExportCsvButton
+            data={hashtagCsvData}
+            filename="hashtag-performance"
+          />
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-zinc-200">
+                  <th className="pb-3 text-left font-medium text-zinc-500">
+                    Hashtag
+                  </th>
+                  <th className="pb-3 text-right font-medium text-zinc-500">
+                    Posts
+                  </th>
+                  <th className="pb-3 text-right font-medium text-zinc-500">
+                    Avg Engagement Rate
+                  </th>
+                  <th className="pb-3 text-right font-medium text-zinc-500">
+                    Total Views
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {hashtagPerformance.slice(0, 20).map((h) => (
+                  <tr
+                    key={h.hashtag}
+                    className="border-b border-zinc-100 last:border-0"
+                  >
+                    <td className="py-2.5">
+                      <Badge variant="secondary">{h.hashtag}</Badge>
+                    </td>
+                    <td className="py-2.5 text-right">
+                      {formatNumber(h.postCount)}
+                    </td>
+                    <td className="py-2.5 text-right">
+                      <Badge
+                        variant={
+                          h.avgEngagementRate > 5 ? "success" : "secondary"
+                        }
+                      >
+                        {formatPercentage(h.avgEngagementRate)}
+                      </Badge>
+                    </td>
+                    <td className="py-2.5 text-right">
+                      {formatNumber(h.totalViews)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

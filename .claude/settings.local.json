@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --turbopack)",
+      "Bash(npx create-next-app@latest tic-social-insights --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --turbopack)",
+      "Bash(npx create-next-app@latest tic-social-insights --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --turbopack --no-react-compiler)",
+      "Bash(cp -r tic-social-insights/* .)",
+      "Bash(cp -r tic-social-insights/.* .)",
+      "Bash(rm -rf tic-social-insights)",
+      "Bash(npm install:*)",
+      "Bash(ls \"C:/Users/MJBartsch/OneDrive - TIC Investments Ltd/Desktop/TIC Social Media Insights Tool/src/app/\\(dashboard\\)/\")",
+      "Bash(find \"C:/Users/MJBartsch/OneDrive - TIC Investments Ltd/Desktop/TIC Social Media Insights Tool/src/app/\\(dashboard\\)\" -name \"page.tsx\")",
+      "Bash(npx next:*)",
+      "Bash(npm list:*)",
+      "Bash(pkill -f \"next dev\")",
+      "Bash(taskkill //f //im node.exe)",
+      "Bash(vercel --version)",
+      "Bash(vercel login:*)",
+      "Bash(vercel --yes --name tic-social-insights)",
+      "Bash(vercel --yes)",
+      "Bash(curl -s -o /dev/null -w \"HTTP Status: %{http_code}\\\\nContent-Type: %{content_type}\\\\nSize: %{size_download} bytes\\\\n\" https://tic-social-insights.vercel.app/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://tic-social-insights.vercel.app/platforms)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://tic-social-insights.vercel.app/content)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://tic-social-insights.vercel.app/hooks)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://tic-social-insights.vercel.app/audience)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://tic-social-insights.vercel.app/accounts)",
+      "Bash(curl -s https://tic-social-insights.vercel.app/api/posts)",
+      "Bash(vercel --yes --prod)"
+    ]
+  }
+}
