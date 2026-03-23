@@ -26,7 +26,9 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://tic-social-insights.vercel.app/accounts)",
       "Bash(curl -s https://tic-social-insights.vercel.app/api/posts)",
       "Bash(vercel --yes --prod)",
-      "Bash(npx prisma:*)"
+      "Bash(npx prisma:*)",
+      "Bash(curl -s https://tic-social-insights.vercel.app/api/accounts)",
+      "Bash(curl -s https://tic-social-insights.vercel.app/api/settings)"
     ]
   }
 }
