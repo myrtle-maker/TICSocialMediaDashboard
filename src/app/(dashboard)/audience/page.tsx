@@ -77,7 +77,7 @@ function computeHeatmap(posts: SocialPost[]): PostingTimeHeatmap[] {
 }
 
 export default function AudiencePage() {
-  const { filters } = useFilters();
+  const { filters, refreshKey } = useFilters();
 
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,7 +94,7 @@ export default function AudiencePage() {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, refreshKey]);
 
   useEffect(() => {
     fetchData();

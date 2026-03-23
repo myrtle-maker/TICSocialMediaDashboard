@@ -30,7 +30,7 @@ function buildFilterParams(filters: ReturnType<typeof useFilters>["filters"]): s
 export default function SinglePlatformPage() {
   const params = useParams();
   const platform = params.platform as Platform;
-  const { filters } = useFilters();
+  const { filters, refreshKey } = useFilters();
 
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +49,7 @@ export default function SinglePlatformPage() {
     } finally {
       setLoading(false);
     }
-  }, [filters, platform]);
+  }, [filters, refreshKey, platform]);
 
   useEffect(() => {
     fetchData();

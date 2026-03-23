@@ -15,8 +15,10 @@ import {
   AlertTriangle,
   Loader2,
 } from "lucide-react";
+import { useFilters } from "@/components/filters/filter-context";
 
 export default function SettingsPage() {
+  const { triggerRefresh } = useFilters();
   const [apiToken, setApiToken] = useState("");
   const [scrapeFrequency, setScrapeFrequency] = useState("Every 24 hours");
   const [postsPerScrape, setPostsPerScrape] = useState("50 posts");
@@ -150,6 +152,7 @@ export default function SettingsPage() {
                 error: r.error,
               })),
             });
+            triggerRefresh();
             // Refresh account count
             fetch("/api/accounts")
               .then((r) => r.json())
@@ -173,6 +176,7 @@ export default function SettingsPage() {
                 error: r.error,
               })),
             });
+            triggerRefresh();
           }
         } catch {
           // Ignore poll errors, keep trying

@@ -23,7 +23,7 @@ function buildFilterParams(filters: ReturnType<typeof useFilters>["filters"]): s
 }
 
 export default function InsightsPage() {
-  const { filters } = useFilters();
+  const { filters, refreshKey } = useFilters();
   const [data, setData] = useState<InsightsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -40,7 +40,7 @@ export default function InsightsPage() {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, refreshKey]);
 
   useEffect(() => {
     fetchInsights();

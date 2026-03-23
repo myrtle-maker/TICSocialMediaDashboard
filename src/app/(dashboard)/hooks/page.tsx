@@ -76,7 +76,7 @@ function computeHookAnalysis(posts: SocialPost[]): HookAnalysis[] {
 }
 
 export default function HooksPage() {
-  const { filters } = useFilters();
+  const { filters, refreshKey } = useFilters();
 
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,7 +93,7 @@ export default function HooksPage() {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, refreshKey]);
 
   useEffect(() => {
     fetchData();

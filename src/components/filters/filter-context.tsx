@@ -13,12 +13,17 @@ interface FilterContextType {
   toggleContentType: (contentType: ContentType) => void;
   toggleHookType: (hookType: HookType) => void;
   activeFilterCount: number;
+  /** Increment to force all pages to re-fetch data */
+  refreshKey: number;
+  /** Call after a scrape completes to trigger dashboard-wide refresh */
+  triggerRefresh: () => void;
 }
 
 const FilterContext = createContext<FilterContextType | null>(null);
 
 export function FilterProvider({ children }: { children: ReactNode }) {
   const [filters, setFilters] = useState<PostFilters>(DEFAULT_FILTERS);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const updateFilter = useCallback(
     <K extends keyof PostFilters>(key: K, value: PostFilters[K]) => {
@@ -29,6 +34,10 @@ export function FilterProvider({ children }: { children: ReactNode }) {
 
   const resetFilters = useCallback(() => {
     setFilters(DEFAULT_FILTERS);
+  }, []);
+
+  const triggerRefresh = useCallback(() => {
+    setRefreshKey((prev) => prev + 1);
   }, []);
 
   const togglePlatform = useCallback((platform: Platform) => {
@@ -79,6 +88,8 @@ export function FilterProvider({ children }: { children: ReactNode }) {
         toggleContentType,
         toggleHookType,
         activeFilterCount,
+        refreshKey,
+        triggerRefresh,
       }}
     >
       {children}

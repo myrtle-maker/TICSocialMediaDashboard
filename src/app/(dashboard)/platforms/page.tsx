@@ -48,7 +48,7 @@ function computePlatformStats(posts: SocialPost[], platform: Platform) {
 }
 
 export default function PlatformsPage() {
-  const { filters } = useFilters();
+  const { filters, refreshKey } = useFilters();
 
   const [allPosts, setAllPosts] = useState<SocialPost[]>([]);
   const [accounts, setAccounts] = useState<SocialAccount[]>([]);
@@ -71,7 +71,7 @@ export default function PlatformsPage() {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, refreshKey]);
 
   useEffect(() => {
     fetchData();

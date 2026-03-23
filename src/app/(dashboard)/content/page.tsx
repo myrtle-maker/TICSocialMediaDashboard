@@ -117,7 +117,7 @@ function computeHashtagPerformance(posts: SocialPost[]): HashtagPerformance[] {
 }
 
 export default function ContentPage() {
-  const { filters } = useFilters();
+  const { filters, refreshKey } = useFilters();
 
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -134,7 +134,7 @@ export default function ContentPage() {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, refreshKey]);
 
   useEffect(() => {
     fetchData();

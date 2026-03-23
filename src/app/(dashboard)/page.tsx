@@ -49,7 +49,7 @@ function buildFilterParams(filters: ReturnType<typeof useFilters>["filters"]): s
 }
 
 export default function OverviewPage() {
-  const { filters } = useFilters();
+  const { filters, refreshKey } = useFilters();
 
   const [kpis, setKpis] = useState<KpiData | null>(null);
   const [recentPosts, setRecentPosts] = useState<SocialPost[]>([]);
@@ -83,7 +83,7 @@ export default function OverviewPage() {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, refreshKey]);
 
   useEffect(() => {
     fetchData();
