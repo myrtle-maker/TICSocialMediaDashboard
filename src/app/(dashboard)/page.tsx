@@ -27,6 +27,9 @@ import {
   Loader2,
 } from "lucide-react";
 import type { SocialPost, KpiData, TrendDataPoint } from "@/types/social";
+import type { Insight } from "@/types/insights";
+import { TopInsightsStrip } from "@/components/insights/top-insights-strip";
+import Link from "next/link";
 
 function buildFilterParams(filters: ReturnType<typeof useFilters>["filters"]): string {
   const params = new URLSearchParams();
@@ -51,6 +54,7 @@ export default function OverviewPage() {
   const [kpis, setKpis] = useState<KpiData | null>(null);
   const [recentPosts, setRecentPosts] = useState<SocialPost[]>([]);
   const [allPosts, setAllPosts] = useState<SocialPost[]>([]);
+  const [topInsights, setTopInsights] = useState<Insight[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
@@ -58,19 +62,22 @@ export default function OverviewPage() {
     try {
       const filterParams = buildFilterParams(filters);
 
-      const [kpiRes, recentRes, allRes] = await Promise.all([
+      const [kpiRes, recentRes, allRes, insightsRes] = await Promise.all([
         fetch(`/api/analytics/overview?${filterParams}`),
         fetch(`/api/posts?sortBy=publishedAt&sortOrder=desc&limit=5&${filterParams}`),
         fetch(`/api/posts?${filterParams}`),
+        fetch(`/api/analytics/insights?${filterParams}`),
       ]);
 
       const kpiData = await kpiRes.json();
       const recentData = await recentRes.json();
       const allData = await allRes.json();
+      const insightsData = await insightsRes.json();
 
       setKpis(kpiData);
       setRecentPosts(recentData.posts ?? []);
       setAllPosts(allData.posts ?? []);
+      setTopInsights((insightsData.insights ?? []).slice(0, 5));
     } catch (err) {
       console.error("Failed to fetch overview data:", err);
     } finally {
@@ -198,6 +205,24 @@ export default function OverviewPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Key Insights */}
+      {topInsights.length > 0 && (
+        <div>
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+              Key Insights
+            </h3>
+            <Link
+              href="/insights"
+              className="text-sm text-blue-600 hover:underline dark:text-blue-400"
+            >
+              View all insights
+            </Link>
+          </div>
+          <TopInsightsStrip insights={topInsights} />
+        </div>
+      )}
 
       {/* Engagement Trend Chart */}
       {trends.length > 0 && (

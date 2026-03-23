@@ -10,6 +10,7 @@ import {
   Users,
   Settings,
   SlidersHorizontal,
+  Lightbulb,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -25,10 +26,12 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   users: Users,
   settings: Settings,
   "sliders-horizontal": SlidersHorizontal,
+  lightbulb: Lightbulb,
 };
 
 const navItems = [
   { href: "/", label: "Overview", icon: "layout-dashboard" },
+  { href: "/insights", label: "Insights", icon: "lightbulb" },
   { href: "/platforms", label: "Platforms", icon: "grid-3x3" },
   { href: "/content", label: "Content", icon: "bar-chart-3" },
   { href: "/hooks", label: "Hooks", icon: "zap" },
