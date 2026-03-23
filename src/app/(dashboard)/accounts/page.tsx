@@ -8,29 +8,49 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatNumber } from "@/lib/utils";
-import { Plus, Users, Trash2 } from "lucide-react";
-import { getSavedAccounts, removeAccount } from "@/lib/store";
+import { Plus, Users, Trash2, Loader2 } from "lucide-react";
 import type { SocialAccount } from "@/types/social";
 
 export default function AccountsPage() {
   const [accounts, setAccounts] = useState<SocialAccount[]>([]);
-  const [mounted, setMounted] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [removing, setRemoving] = useState<string | null>(null);
 
-  const loadAccounts = useCallback(() => {
-    setAccounts(getSavedAccounts());
+  const loadAccounts = useCallback(async () => {
+    try {
+      const res = await fetch("/api/accounts");
+      const data = await res.json();
+      setAccounts(data.accounts ?? []);
+    } catch {
+      setAccounts([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    setMounted(true);
     loadAccounts();
   }, [loadAccounts]);
 
-  const handleRemove = (id: string) => {
-    removeAccount(id);
-    loadAccounts();
+  const handleRemove = async (id: string) => {
+    setRemoving(id);
+    try {
+      await fetch(`/api/accounts/${id}`, { method: "DELETE" });
+      await loadAccounts();
+    } catch {
+      // ignore
+    } finally {
+      setRemoving(null);
+    }
   };
 
-  if (!mounted) return null;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -70,7 +90,7 @@ export default function AccountsPage() {
         <Card>
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-              {formatNumber(accounts.reduce((s, a) => s + a.followers, 0))}
+              {formatNumber(accounts.reduce((s, a) => s + (a.followers ?? 0), 0))}
             </p>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">Total Followers</p>
           </CardContent>
@@ -101,7 +121,7 @@ export default function AccountsPage() {
                         : "Not yet scraped — configure Apify API token in Settings"}
                     </p>
                   </div>
-                  {account.followers > 0 && (
+                  {(account.followers ?? 0) > 0 && (
                     <div className="hidden text-center sm:block">
                       <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
                         {formatNumber(account.followers)}
@@ -114,9 +134,14 @@ export default function AccountsPage() {
                     size="icon"
                     className="h-8 w-8 text-zinc-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400"
                     onClick={() => handleRemove(account.id)}
+                    disabled={removing === account.id}
                     title="Remove account"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    {removing === account.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
                   </Button>
                 </CardContent>
               </Card>

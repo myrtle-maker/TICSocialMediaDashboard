@@ -8,20 +8,43 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { Platform } from "@/types/social";
-import { ArrowLeft, CheckCircle2, Plus } from "lucide-react";
-import { saveAccount } from "@/lib/store";
+import { ArrowLeft, CheckCircle2, Plus, Loader2 } from "lucide-react";
 
 export default function AddAccountPage() {
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(null);
   const [username, setUsername] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedPlatform || !username.trim()) return;
 
-    saveAccount(selectedPlatform, username.trim());
-    setSubmitted(true);
+    setSaving(true);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/accounts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          platform: selectedPlatform,
+          handle: username.trim(),
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to save account");
+      }
+
+      setSubmitted(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save account");
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (submitted) {
@@ -32,15 +55,15 @@ export default function AddAccountPage() {
             <CardContent className="flex flex-col items-center p-8 text-center">
               <CheckCircle2 className="mb-4 h-12 w-12 text-emerald-500" />
               <h3 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                Account Added Successfully
+                Account Saved
               </h3>
               <p className="mb-1 text-sm text-zinc-600 dark:text-zinc-400">
                 <span className="font-medium">@{username}</span> on{" "}
                 {selectedPlatform && PLATFORM_CONFIG[selectedPlatform].label}
+                {" "}has been added to the database.
               </p>
               <p className="mb-6 text-xs text-zinc-400 dark:text-zinc-500">
-                The account has been saved. Configure your Apify API token in
-                Settings to start scraping data.
+                Configure your Apify API token in Settings to start scraping data.
               </p>
               <div className="flex gap-3">
                 <Button
@@ -136,10 +159,15 @@ export default function AddAccountPage() {
                   className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 disabled:cursor-not-allowed disabled:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:disabled:bg-zinc-800"
                 />
                 <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
-                  Enter the username without the @ symbol, or paste the full
-                  profile URL.
+                  Enter the username without the @ symbol, or paste the full profile URL.
                 </p>
               </div>
+
+              {error && (
+                <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
+                  {error}
+                </div>
+              )}
 
               {selectedPlatform && (
                 <div className="rounded-lg bg-zinc-50 p-3 dark:bg-zinc-800">
@@ -157,10 +185,14 @@ export default function AddAccountPage() {
               <Button
                 type="submit"
                 className="w-full"
-                disabled={!selectedPlatform || !username.trim()}
+                disabled={!selectedPlatform || !username.trim() || saving}
               >
-                <Plus className="h-4 w-4" />
-                <span>Add Account</span>
+                {saving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
+                <span>{saving ? "Saving..." : "Add Account"}</span>
               </Button>
             </CardContent>
           </Card>

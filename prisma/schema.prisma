@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("POSTGRES_PRISMA_URL")
+  directUrl = env("POSTGRES_URL_NON_POOLING")
+}
+
+model Account {
+  id                String   @id @default(cuid())
+  platform          String
+  platformAccountId String
+  handle            String
+  displayName       String
+  profileImageUrl   String?
+  bio               String?
+  followers         Int      @default(0)
+  following         Int      @default(0)
+  totalPosts        Int      @default(0)
+  verified          Boolean  @default(false)
+  accountType       String   @default("business")
+  category          String?
+  externalUrl       String?
+  lastScrapedAt     DateTime?
+  createdAt         DateTime @default(now())
+
+  posts Post[]
+
+  @@unique([platform, handle])
+  @@map("accounts")
+}
+
+model Post {
+  id              String   @id @default(cuid())
+  platformPostId  String
+  platform        String
+  accountId       String
+  contentType     String
+  caption         String
+  hashtags        String[]
+  mentions        String[]
+  mediaUrls       String[]
+  thumbnailUrl    String?
+  permalink       String
+
+  hookText        String
+  hookType        String
+  hookScore       Float    @default(0)
+
+  likes           Int      @default(0)
+  comments        Int      @default(0)
+  shares          Int      @default(0)
+  saves           Int      @default(0)
+  views           Int      @default(0)
+  impressions     Int?
+  reach           Int?
+
+  engagementRate  Float    @default(0)
+  viralityScore   Float    @default(0)
+
+  platformMeta    Json     @default("{}")
+
+  publishedAt     DateTime
+  scrapedAt       DateTime @default(now())
+
+  account         Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([platform, platformPostId])
+  @@index([platform])
+  @@index([accountId])
+  @@index([publishedAt])
+  @@index([hookType])
+  @@index([contentType])
+  @@map("posts")
+}
+
+model Setting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+
+  @@map("settings")
+}
+
+model ScrapeJob {
+  id            String    @id @default(cuid())
+  platform      String
+  accountId     String
+  apifyRunId    String
+  apifyActorId  String
+  status        String    @default("pending")
+  postsScraped  Int       @default(0)
+  startedAt     DateTime  @default(now())
+  completedAt   DateTime?
+  errorMessage  String?
+
+  @@index([accountId])
+  @@index([status])
+  @@map("scrape_jobs")
+}

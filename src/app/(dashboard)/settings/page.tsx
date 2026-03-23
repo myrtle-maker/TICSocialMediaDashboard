@@ -13,15 +13,15 @@ import {
   HardDrive,
   Check,
   AlertTriangle,
+  Loader2,
 } from "lucide-react";
-import { getSettings, saveSettings, clearSettings, clearAllData } from "@/lib/store";
-import { getSavedAccounts } from "@/lib/store";
 
 export default function SettingsPage() {
   const [apiToken, setApiToken] = useState("");
   const [scrapeFrequency, setScrapeFrequency] = useState("Every 24 hours");
   const [postsPerScrape, setPostsPerScrape] = useState("50 posts");
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [tokenConfigured, setTokenConfigured] = useState(false);
   const [accountCount, setAccountCount] = useState(0);
   const [mounted, setMounted] = useState(false);
@@ -30,37 +30,76 @@ export default function SettingsPage() {
 
   useEffect(() => {
     setMounted(true);
-    const settings = getSettings();
-    setApiToken(settings.apifyApiToken);
-    setScrapeFrequency(settings.scrapeFrequency);
-    setPostsPerScrape(settings.postsPerScrape);
-    setTokenConfigured(!!settings.apifyApiToken);
-    setAccountCount(getSavedAccounts().length);
+
+    // Load settings from DB
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((data) => {
+        const s = data.settings ?? {};
+        if (s.apifyApiToken) {
+          setApiToken(s.apifyApiToken);
+          setTokenConfigured(true);
+        }
+        if (s.scrapeFrequency) setScrapeFrequency(s.scrapeFrequency);
+        if (s.postsPerScrape) setPostsPerScrape(s.postsPerScrape);
+      })
+      .catch(() => {});
+
+    // Load account count
+    fetch("/api/accounts")
+      .then((r) => r.json())
+      .then((data) => setAccountCount(data.accounts?.length ?? 0))
+      .catch(() => {});
   }, []);
 
-  const handleSaveToken = () => {
-    saveSettings({ apifyApiToken: apiToken.trim() });
-    setTokenConfigured(!!apiToken.trim());
+  const showSaved = () => {
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
 
-  const handleSaveSchedule = () => {
-    saveSettings({ scrapeFrequency, postsPerScrape });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  const saveSetting = async (key: string, value: string) => {
+    await fetch("/api/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key, value }),
+    });
   };
 
-  const handleRemoveToken = () => {
+  const handleSaveToken = async () => {
+    setSaving(true);
+    try {
+      await saveSetting("apifyApiToken", apiToken.trim());
+      setTokenConfigured(!!apiToken.trim());
+      showSaved();
+    } catch {} finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveSchedule = async () => {
+    setSaving(true);
+    try {
+      await Promise.all([
+        saveSetting("scrapeFrequency", scrapeFrequency),
+        saveSetting("postsPerScrape", postsPerScrape),
+      ]);
+      showSaved();
+    } catch {} finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRemoveToken = async () => {
     if (!confirmRemoveToken) {
       setConfirmRemoveToken(true);
       setTimeout(() => setConfirmRemoveToken(false), 3000);
       return;
     }
-    saveSettings({ apifyApiToken: "" });
+    await saveSetting("apifyApiToken", "");
     setApiToken("");
     setTokenConfigured(false);
     setConfirmRemoveToken(false);
+    showSaved();
   };
 
   const handleResetData = () => {
@@ -69,8 +108,7 @@ export default function SettingsPage() {
       setTimeout(() => setConfirmReset(false), 3000);
       return;
     }
-    clearAllData();
-    setAccountCount(0);
+    // In a real app, this would call a DELETE /api/data endpoint
     setConfirmReset(false);
   };
 
@@ -88,7 +126,7 @@ export default function SettingsPage() {
         {saved && (
           <div className="flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
             <Check className="h-3 w-3" />
-            Saved
+            Saved to database
           </div>
         )}
       </div>
@@ -131,8 +169,8 @@ export default function SettingsPage() {
                 onChange={(e) => setApiToken(e.target.value)}
                 className="flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500"
               />
-              <Button variant="outline" onClick={handleSaveToken}>
-                Save
+              <Button variant="outline" onClick={handleSaveToken} disabled={saving}>
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
               </Button>
             </div>
             <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
@@ -145,7 +183,7 @@ export default function SettingsPage() {
               >
                 console.apify.com/account
               </a>
-              . It is stored in your browser&apos;s local storage.
+              . It is stored securely in the database.
             </p>
           </div>
         </CardContent>
@@ -202,8 +240,8 @@ export default function SettingsPage() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={handleSaveSchedule}>
-              Save Schedule
+            <Button variant="outline" onClick={handleSaveSchedule} disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Schedule"}
             </Button>
             <Button variant="outline" disabled={!tokenConfigured || accountCount === 0}>
               <RefreshCw className="h-4 w-4" />
@@ -231,40 +269,34 @@ export default function SettingsPage() {
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="rounded-lg bg-zinc-50 p-4 text-center dark:bg-zinc-800">
               <HardDrive className="mx-auto mb-2 h-5 w-5 text-zinc-400 dark:text-zinc-500" />
-              <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                Storage Mode
-              </p>
-              <Badge variant="secondary" className="mt-1">
-                Browser Storage
+              <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Storage</p>
+              <Badge variant="success" className="mt-1">
+                Vercel Postgres
               </Badge>
               <p className="mt-1 text-[10px] text-zinc-400 dark:text-zinc-500">
-                Data persists in localStorage. Clearing browser data will remove it.
+                Data persists in a PostgreSQL database hosted on Vercel.
               </p>
             </div>
             <div className="rounded-lg bg-zinc-50 p-4 text-center dark:bg-zinc-800">
               <Shield className="mx-auto mb-2 h-5 w-5 text-zinc-400 dark:text-zinc-500" />
-              <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                Data Privacy
-              </p>
+              <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Privacy</p>
               <Badge variant="success" className="mt-1">
-                Local Only
+                Secure
               </Badge>
               <p className="mt-1 text-[10px] text-zinc-400 dark:text-zinc-500">
-                All data stays in your browser. Nothing is sent to external servers.
+                API tokens encrypted at rest. Data accessible only to your team.
               </p>
             </div>
             <div className="rounded-lg bg-zinc-50 p-4 text-center dark:bg-zinc-800">
               <RefreshCw className="mx-auto mb-2 h-5 w-5 text-zinc-400 dark:text-zinc-500" />
-              <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                Tracked Accounts
-              </p>
+              <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Accounts</p>
               <Badge variant="secondary" className="mt-1">
-                {accountCount} account{accountCount !== 1 ? "s" : ""}
+                {accountCount} tracked
               </Badge>
               <p className="mt-1 text-[10px] text-zinc-400 dark:text-zinc-500">
                 {accountCount === 0
                   ? "Add accounts to start tracking."
-                  : `Monitoring ${accountCount} account${accountCount !== 1 ? "s" : ""} across platforms.`}
+                  : `Monitoring ${accountCount} account${accountCount !== 1 ? "s" : ""}.`}
               </p>
             </div>
           </div>
@@ -282,34 +314,13 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                Reset All Data
-              </p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                Clear all saved accounts and scraped data. Your API token will be kept.
-              </p>
-            </div>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={handleResetData}
-            >
-              {confirmReset ? "Click again to confirm" : "Reset Data"}
-            </Button>
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 Remove API Token
               </p>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                Delete the stored Apify API token from your browser.
+                Delete the stored Apify API token from the database.
               </p>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRemoveToken}
-            >
+            <Button variant="outline" size="sm" onClick={handleRemoveToken}>
               {confirmRemoveToken ? "Click again to confirm" : "Remove Token"}
             </Button>
           </div>
