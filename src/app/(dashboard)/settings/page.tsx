@@ -375,6 +375,54 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
+      {/* Auto-Scraping (Vercel Cron) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+            <Clock className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
+            Auto-Scraping (Vercel Cron)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-zinc-700 dark:text-zinc-300">
+                Automated daily scraping via Vercel Cron Jobs
+              </p>
+              <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                Scrape runs daily at 9:00 AM UTC. Results are collected at 9:05 AM UTC.
+              </p>
+              <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
+                Next scheduled scrape:{" "}
+                {(() => {
+                  const now = new Date();
+                  const next = new Date(now);
+                  next.setUTCHours(9, 0, 0, 0);
+                  if (next <= now) next.setUTCDate(next.getUTCDate() + 1);
+                  return next.toLocaleString(undefined, {
+                    weekday: "short",
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    timeZoneName: "short",
+                  });
+                })()}
+              </p>
+            </div>
+            <Badge variant={tokenConfigured ? "success" : "warning"}>
+              {tokenConfigured ? "Enabled" : "Set API token to enable"}
+            </Badge>
+          </div>
+          {!tokenConfigured && (
+            <p className="mt-2 flex items-center text-xs text-amber-600 dark:text-amber-400">
+              <AlertTriangle className="mr-1 h-3 w-3" />
+              Configure your Apify API token above and set CRON_SECRET env var on Vercel to enable auto-scraping.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Scrape Results */}
       {scrapeResult && (
         <Card className={scrapeResult.success ? "border-emerald-200 dark:border-emerald-800" : "border-red-200 dark:border-red-800"}>

@@ -29,6 +29,7 @@ import {
 import type { SocialPost, KpiData, TrendDataPoint } from "@/types/social";
 import type { Insight } from "@/types/insights";
 import { TopInsightsStrip } from "@/components/insights/top-insights-strip";
+import { HealthScoreRow } from "@/components/dashboard/health-score-row";
 import Link from "next/link";
 
 function buildFilterParams(filters: ReturnType<typeof useFilters>["filters"]): string {
@@ -146,6 +147,9 @@ export default function OverviewPage() {
           Your social media performance at a glance.
         </p>
       </div>
+
+      {/* Platform Health Scores */}
+      <HealthScoreRow refreshKey={refreshKey} />
 
       {/* KPI Grid */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">

@@ -13,9 +13,11 @@ import {
   Lightbulb,
   ChevronLeft,
   ChevronRight,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ThemeToggle } from "./theme-toggle";
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -42,7 +44,14 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
+
+  async function handleLogout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/login");
+    router.refresh();
+  }
 
   return (
     <aside
@@ -98,8 +107,18 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Footer: Theme Toggle + Collapse */}
+      {/* Footer: Logout + Theme Toggle + Collapse */}
       <div className="border-t border-zinc-200 p-3 dark:border-zinc-700">
+        <button
+          onClick={handleLogout}
+          className={cn(
+            "mb-2 flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100",
+            collapsed && "justify-center px-0"
+          )}
+        >
+          <LogOut className="h-3.5 w-3.5 shrink-0" />
+          {!collapsed && <span>Log out</span>}
+        </button>
         <div className="flex items-center justify-between">
           <ThemeToggle />
           <button

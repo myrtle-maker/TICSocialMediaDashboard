@@ -28,9 +28,12 @@ export async function startActorRun(
   // actorId like "clockworks/tiktok-scraper" needs to be encoded
   const encodedActorId = actorId.replace("/", "~");
 
-  const res = await fetch(`${BASE}/acts/${encodedActorId}/runs?token=${token}`, {
+  const res = await fetch(`${BASE}/acts/${encodedActorId}/runs`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
     body: JSON.stringify(input),
   });
 
@@ -52,7 +55,9 @@ export async function getRunStatus(
   token: string,
   runId: string
 ): Promise<{ status: string; datasetId: string; finishedAt: string | null }> {
-  const res = await fetch(`${BASE}/actor-runs/${runId}?token=${token}`);
+  const res = await fetch(`${BASE}/actor-runs/${runId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
 
   if (!res.ok) {
     throw new Error(`Failed to get run status: ${res.status}`);
@@ -73,7 +78,8 @@ export async function getDatasetItems(
   limit = 100
 ): Promise<Record<string, unknown>[]> {
   const res = await fetch(
-    `${BASE}/datasets/${datasetId}/items?token=${token}&limit=${limit}&format=json`
+    `${BASE}/datasets/${datasetId}/items?limit=${limit}&format=json`,
+    { headers: { Authorization: `Bearer ${token}` } }
   );
 
   if (!res.ok) {
