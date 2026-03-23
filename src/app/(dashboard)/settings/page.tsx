@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,16 +11,86 @@ import {
   Database,
   Shield,
   HardDrive,
+  Check,
+  AlertTriangle,
 } from "lucide-react";
+import { getSettings, saveSettings, clearSettings, clearAllData } from "@/lib/store";
+import { getSavedAccounts } from "@/lib/store";
 
 export default function SettingsPage() {
+  const [apiToken, setApiToken] = useState("");
+  const [scrapeFrequency, setScrapeFrequency] = useState("Every 24 hours");
+  const [postsPerScrape, setPostsPerScrape] = useState("50 posts");
+  const [saved, setSaved] = useState(false);
+  const [tokenConfigured, setTokenConfigured] = useState(false);
+  const [accountCount, setAccountCount] = useState(0);
+  const [mounted, setMounted] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [confirmRemoveToken, setConfirmRemoveToken] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    const settings = getSettings();
+    setApiToken(settings.apifyApiToken);
+    setScrapeFrequency(settings.scrapeFrequency);
+    setPostsPerScrape(settings.postsPerScrape);
+    setTokenConfigured(!!settings.apifyApiToken);
+    setAccountCount(getSavedAccounts().length);
+  }, []);
+
+  const handleSaveToken = () => {
+    saveSettings({ apifyApiToken: apiToken.trim() });
+    setTokenConfigured(!!apiToken.trim());
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handleSaveSchedule = () => {
+    saveSettings({ scrapeFrequency, postsPerScrape });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handleRemoveToken = () => {
+    if (!confirmRemoveToken) {
+      setConfirmRemoveToken(true);
+      setTimeout(() => setConfirmRemoveToken(false), 3000);
+      return;
+    }
+    saveSettings({ apifyApiToken: "" });
+    setApiToken("");
+    setTokenConfigured(false);
+    setConfirmRemoveToken(false);
+  };
+
+  const handleResetData = () => {
+    if (!confirmReset) {
+      setConfirmReset(true);
+      setTimeout(() => setConfirmReset(false), 3000);
+      return;
+    }
+    clearAllData();
+    setAccountCount(0);
+    setConfirmReset(false);
+  };
+
+  if (!mounted) return null;
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Settings</h2>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Configure your data sources, API keys, and scrape schedules.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Settings</h2>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            Configure your data sources, API keys, and scrape schedules.
+          </p>
+        </div>
+        {saved && (
+          <div className="flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+            <Check className="h-3 w-3" />
+            Saved
+          </div>
+        )}
       </div>
 
       {/* API Token */}
@@ -38,7 +109,11 @@ export default function SettingsPage() {
                 Required for scraping social media data via Apify actors.
               </p>
             </div>
-            <Badge variant="warning">Not Configured</Badge>
+            {tokenConfigured ? (
+              <Badge variant="success">Configured</Badge>
+            ) : (
+              <Badge variant="warning">Not Configured</Badge>
+            )}
           </div>
           <div>
             <label
@@ -52,14 +127,25 @@ export default function SettingsPage() {
                 id="api-token"
                 type="password"
                 placeholder="apify_api_xxxxxxxxxxxxx"
+                value={apiToken}
+                onChange={(e) => setApiToken(e.target.value)}
                 className="flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500"
               />
-              <Button variant="outline">Save</Button>
+              <Button variant="outline" onClick={handleSaveToken}>
+                Save
+              </Button>
             </div>
             <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
               Get your API token from{" "}
-              <span className="text-blue-600">console.apify.com/account</span>.
-              It is stored securely and never exposed to the browser.
+              <a
+                href="https://console.apify.com/account#/integrations"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline dark:text-blue-400"
+              >
+                console.apify.com/account
+              </a>
+              . It is stored in your browser&apos;s local storage.
             </p>
           </div>
         </CardContent>
@@ -81,7 +167,11 @@ export default function SettingsPage() {
                 How often new posts are fetched from each platform.
               </p>
               <div className="mt-3">
-                <select className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100">
+                <select
+                  value={scrapeFrequency}
+                  onChange={(e) => setScrapeFrequency(e.target.value)}
+                  className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
+                >
                   <option>Every 6 hours</option>
                   <option>Every 12 hours</option>
                   <option>Every 24 hours</option>
@@ -98,7 +188,11 @@ export default function SettingsPage() {
                 Maximum number of recent posts to fetch per account per run.
               </p>
               <div className="mt-3">
-                <select className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100">
+                <select
+                  value={postsPerScrape}
+                  onChange={(e) => setPostsPerScrape(e.target.value)}
+                  className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
+                >
                   <option>10 posts</option>
                   <option>25 posts</option>
                   <option>50 posts</option>
@@ -107,10 +201,21 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
-          <Button variant="outline" className="w-full sm:w-auto">
-            <RefreshCw className="h-4 w-4" />
-            <span>Run Scrape Now</span>
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleSaveSchedule}>
+              Save Schedule
+            </Button>
+            <Button variant="outline" disabled={!tokenConfigured || accountCount === 0}>
+              <RefreshCw className="h-4 w-4" />
+              <span>Run Scrape Now</span>
+            </Button>
+            {!tokenConfigured && (
+              <p className="flex items-center text-xs text-amber-600 dark:text-amber-400">
+                <AlertTriangle className="mr-1 h-3 w-3" />
+                Configure API token first
+              </p>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -126,39 +231,40 @@ export default function SettingsPage() {
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="rounded-lg bg-zinc-50 p-4 text-center dark:bg-zinc-800">
               <HardDrive className="mx-auto mb-2 h-5 w-5 text-zinc-400 dark:text-zinc-500" />
-              <p className="text-sm font-medium text-zinc-700">
+              <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 Storage Mode
               </p>
               <Badge variant="secondary" className="mt-1">
-                In-Memory (Seed Data)
+                Browser Storage
               </Badge>
               <p className="mt-1 text-[10px] text-zinc-400 dark:text-zinc-500">
-                Data is reset on page reload. Connect a database for
-                persistence.
+                Data persists in localStorage. Clearing browser data will remove it.
               </p>
             </div>
             <div className="rounded-lg bg-zinc-50 p-4 text-center dark:bg-zinc-800">
               <Shield className="mx-auto mb-2 h-5 w-5 text-zinc-400 dark:text-zinc-500" />
-              <p className="text-sm font-medium text-zinc-700">
+              <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 Data Privacy
               </p>
               <Badge variant="success" className="mt-1">
                 Local Only
               </Badge>
               <p className="mt-1 text-[10px] text-zinc-400 dark:text-zinc-500">
-                All data stays on your machine. No telemetry is sent.
+                All data stays in your browser. Nothing is sent to external servers.
               </p>
             </div>
             <div className="rounded-lg bg-zinc-50 p-4 text-center dark:bg-zinc-800">
               <RefreshCw className="mx-auto mb-2 h-5 w-5 text-zinc-400 dark:text-zinc-500" />
-              <p className="text-sm font-medium text-zinc-700">
-                Last Refresh
+              <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                Tracked Accounts
               </p>
               <Badge variant="secondary" className="mt-1">
-                On Page Load
+                {accountCount} account{accountCount !== 1 ? "s" : ""}
               </Badge>
               <p className="mt-1 text-[10px] text-zinc-400 dark:text-zinc-500">
-                Seed data loaded automatically on each session start.
+                {accountCount === 0
+                  ? "Add accounts to start tracking."
+                  : `Monitoring ${accountCount} account${accountCount !== 1 ? "s" : ""} across platforms.`}
               </p>
             </div>
           </div>
@@ -166,9 +272,9 @@ export default function SettingsPage() {
       </Card>
 
       {/* Danger Zone */}
-      <Card className="border-red-200">
+      <Card className="border-red-200 dark:border-red-900">
         <CardHeader>
-          <CardTitle className="text-sm font-medium text-red-600">
+          <CardTitle className="text-sm font-medium text-red-600 dark:text-red-400">
             Danger Zone
           </CardTitle>
         </CardHeader>
@@ -179,12 +285,15 @@ export default function SettingsPage() {
                 Reset All Data
               </p>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                Clear all scraped data and reset to seed data. This action
-                cannot be undone.
+                Clear all saved accounts and scraped data. Your API token will be kept.
               </p>
             </div>
-            <Button variant="destructive" size="sm">
-              Reset Data
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleResetData}
+            >
+              {confirmReset ? "Click again to confirm" : "Reset Data"}
             </Button>
           </div>
           <div className="flex items-center justify-between">
@@ -193,11 +302,15 @@ export default function SettingsPage() {
                 Remove API Token
               </p>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                Delete the stored Apify API token from this application.
+                Delete the stored Apify API token from your browser.
               </p>
             </div>
-            <Button variant="outline" size="sm">
-              Remove Token
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRemoveToken}
+            >
+              {confirmRemoveToken ? "Click again to confirm" : "Remove Token"}
             </Button>
           </div>
         </CardContent>

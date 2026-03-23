@@ -1,36 +1,36 @@
 "use client";
 
-import { useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { getAccounts, getPosts } from "@/lib/db";
 import { PLATFORM_CONFIG } from "@/lib/constants";
 import { PlatformIcon } from "@/components/platforms/platform-icon";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatNumber, formatRelativeTime } from "@/lib/utils";
-import { Plus, Users, ExternalLink } from "lucide-react";
+import { formatNumber } from "@/lib/utils";
+import { Plus, Users, Trash2 } from "lucide-react";
+import { getSavedAccounts, removeAccount } from "@/lib/store";
+import type { SocialAccount } from "@/types/social";
 
 export default function AccountsPage() {
-  const accounts = useMemo(() => getAccounts(), []);
-  const allPosts = useMemo(() => getPosts(), []);
+  const [accounts, setAccounts] = useState<SocialAccount[]>([]);
+  const [mounted, setMounted] = useState(false);
 
-  const accountsWithStats = useMemo(
-    () =>
-      accounts.map((account) => {
-        const posts = allPosts.filter((p) => p.accountId === account.id);
-        const totalEngagement = posts.reduce(
-          (s, p) => s + p.likes + p.comments + p.shares + p.saves,
-          0
-        );
-        return {
-          ...account,
-          postCount: posts.length,
-          totalEngagement,
-        };
-      }),
-    [accounts, allPosts]
-  );
+  const loadAccounts = useCallback(() => {
+    setAccounts(getSavedAccounts());
+  }, []);
+
+  useEffect(() => {
+    setMounted(true);
+    loadAccounts();
+  }, [loadAccounts]);
+
+  const handleRemove = (id: string) => {
+    removeAccount(id);
+    loadAccounts();
+  };
+
+  if (!mounted) return null;
 
   return (
     <div className="space-y-6">
@@ -50,7 +50,7 @@ export default function AccountsPage() {
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         <Card>
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
@@ -70,95 +70,60 @@ export default function AccountsPage() {
         <Card>
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-              {formatNumber(
-                accounts.reduce((s, a) => s + a.followers, 0)
-              )}
+              {formatNumber(accounts.reduce((s, a) => s + a.followers, 0))}
             </p>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">Total Followers</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-              {formatNumber(allPosts.length)}
-            </p>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">Total Posts</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Account List */}
-      <div className="space-y-3">
-        {accountsWithStats.map((account) => {
-          const config = PLATFORM_CONFIG[account.platform];
-          return (
-            <Card
-              key={account.id}
-              className="transition-shadow hover:shadow-md"
-            >
-              <CardContent className="flex items-center gap-4 p-4">
-                <PlatformIcon platform={account.platform} size="lg" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                      {account.displayName}
-                    </h3>
-                    {account.verified && (
-                      <Badge variant="success" className="text-[10px]">
-                        Verified
+      {accounts.length > 0 && (
+        <div className="space-y-3">
+          {accounts.map((account) => {
+            const config = PLATFORM_CONFIG[account.platform];
+            return (
+              <Card key={account.id} className="transition-shadow hover:shadow-md">
+                <CardContent className="flex items-center gap-4 p-4">
+                  <PlatformIcon platform={account.platform} size="lg" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                        @{account.handle}
+                      </h3>
+                      <Badge variant="secondary" className="text-[10px]">
+                        {config.label}
                       </Badge>
-                    )}
-                    <Badge variant="secondary" className="text-[10px]">
-                      {account.accountType}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                    @{account.handle} on {config.label}
-                  </p>
-                </div>
-                <div className="hidden gap-6 text-center sm:flex">
-                  <div>
-                    <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
-                      {formatNumber(account.followers)}
+                    </div>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      {account.lastScrapedAt
+                        ? `Last scraped: ${new Date(account.lastScrapedAt).toLocaleDateString()}`
+                        : "Not yet scraped — configure Apify API token in Settings"}
                     </p>
-                    <p className="text-[10px] text-zinc-500 dark:text-zinc-400">Followers</p>
                   </div>
-                  <div>
-                    <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
-                      {formatNumber(account.postCount)}
-                    </p>
-                    <p className="text-[10px] text-zinc-500 dark:text-zinc-400">Posts</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
-                      {formatNumber(account.totalEngagement)}
-                    </p>
-                    <p className="text-[10px] text-zinc-500 dark:text-zinc-400">Engagement</p>
-                  </div>
-                </div>
-                <div className="hidden text-right lg:block">
-                  <p className="text-[10px] text-zinc-400 dark:text-zinc-500">Last scraped</p>
-                  <p className="text-xs text-zinc-600 dark:text-zinc-400">
-                    {account.lastScrapedAt
-                      ? formatRelativeTime(account.lastScrapedAt)
-                      : "Never"}
-                  </p>
-                </div>
-                {account.externalUrl && (
-                  <a
-                    href={account.externalUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="shrink-0 text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300"
+                  {account.followers > 0 && (
+                    <div className="hidden text-center sm:block">
+                      <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                        {formatNumber(account.followers)}
+                      </p>
+                      <p className="text-[10px] text-zinc-500 dark:text-zinc-400">Followers</p>
+                    </div>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-zinc-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400"
+                    onClick={() => handleRemove(account.id)}
+                    title="Remove account"
                   >
-                    <ExternalLink className="h-4 w-4" />
-                  </a>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       {accounts.length === 0 && (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-300 bg-zinc-50/50 px-6 py-16 text-center dark:border-zinc-600 dark:bg-zinc-900/50">

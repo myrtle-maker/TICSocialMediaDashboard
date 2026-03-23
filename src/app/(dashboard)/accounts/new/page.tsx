@@ -9,17 +9,18 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { Platform } from "@/types/social";
 import { ArrowLeft, CheckCircle2, Plus } from "lucide-react";
+import { saveAccount } from "@/lib/store";
 
 export default function AddAccountPage() {
-  const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(
-    null
-  );
+  const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(null);
   const [username, setUsername] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedPlatform || !username.trim()) return;
+
+    saveAccount(selectedPlatform, username.trim());
     setSubmitted(true);
   };
 
@@ -38,8 +39,8 @@ export default function AddAccountPage() {
                 {selectedPlatform && PLATFORM_CONFIG[selectedPlatform].label}
               </p>
               <p className="mb-6 text-xs text-zinc-400 dark:text-zinc-500">
-                The first scrape will run shortly. Data will appear on your
-                dashboard once the scrape completes.
+                The account has been saved. Configure your Apify API token in
+                Settings to start scraping data.
               </p>
               <div className="flex gap-3">
                 <Button
@@ -90,7 +91,6 @@ export default function AddAccountPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Platform Selection */}
               <div className="grid grid-cols-3 gap-3">
                 {PLATFORMS.map((platform) => {
                   const config = PLATFORM_CONFIG[platform];
@@ -115,7 +115,6 @@ export default function AddAccountPage() {
                 })}
               </div>
 
-              {/* Username Input */}
               <div>
                 <label
                   htmlFor="username"
@@ -142,7 +141,6 @@ export default function AddAccountPage() {
                 </p>
               </div>
 
-              {/* Info */}
               {selectedPlatform && (
                 <div className="rounded-lg bg-zinc-50 p-3 dark:bg-zinc-800">
                   <p className="text-xs text-zinc-600 dark:text-zinc-400">
@@ -156,7 +154,6 @@ export default function AddAccountPage() {
                 </div>
               )}
 
-              {/* Submit */}
               <Button
                 type="submit"
                 className="w-full"
