@@ -27,6 +27,13 @@ export default function SettingsPage() {
   const [mounted, setMounted] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [confirmRemoveToken, setConfirmRemoveToken] = useState(false);
+  const [scraping, setScraping] = useState(false);
+  const [scrapeResult, setScrapeResult] = useState<{
+    success: boolean;
+    totalPostsScraped?: number;
+    results?: { handle: string; platform: string; status: string; postsScraped: number; error?: string }[];
+    error?: string;
+  } | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -86,6 +93,33 @@ export default function SettingsPage() {
       showSaved();
     } catch {} finally {
       setSaving(false);
+    }
+  };
+
+  const handleRunScrape = async () => {
+    setScraping(true);
+    setScrapeResult(null);
+    try {
+      const res = await fetch("/api/scrape", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scrapeAll: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setScrapeResult({ success: false, error: data.error });
+      } else {
+        setScrapeResult(data);
+        // Refresh account count
+        fetch("/api/accounts")
+          .then((r) => r.json())
+          .then((d) => setAccountCount(d.accounts?.length ?? 0))
+          .catch(() => {});
+      }
+    } catch (err) {
+      setScrapeResult({ success: false, error: err instanceof Error ? err.message : "Scrape request failed" });
+    } finally {
+      setScraping(false);
     }
   };
 
@@ -243,9 +277,17 @@ export default function SettingsPage() {
             <Button variant="outline" onClick={handleSaveSchedule} disabled={saving}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Schedule"}
             </Button>
-            <Button variant="outline" disabled={!tokenConfigured || accountCount === 0}>
-              <RefreshCw className="h-4 w-4" />
-              <span>Run Scrape Now</span>
+            <Button
+              variant="outline"
+              disabled={!tokenConfigured || accountCount === 0 || scraping}
+              onClick={handleRunScrape}
+            >
+              {scraping ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              <span>{scraping ? "Scraping..." : "Run Scrape Now"}</span>
             </Button>
             {!tokenConfigured && (
               <p className="flex items-center text-xs text-amber-600 dark:text-amber-400">
@@ -253,9 +295,51 @@ export default function SettingsPage() {
                 Configure API token first
               </p>
             )}
+            {accountCount === 0 && tokenConfigured && (
+              <p className="flex items-center text-xs text-amber-600 dark:text-amber-400">
+                <AlertTriangle className="mr-1 h-3 w-3" />
+                Add accounts first
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>
+
+      {/* Scrape Results */}
+      {scrapeResult && (
+        <Card className={scrapeResult.success ? "border-emerald-200 dark:border-emerald-800" : "border-red-200 dark:border-red-800"}>
+          <CardHeader>
+            <CardTitle className={`text-sm font-medium ${scrapeResult.success ? "text-emerald-700 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
+              {scrapeResult.success ? `Scrape Complete — ${scrapeResult.totalPostsScraped} posts collected` : "Scrape Failed"}
+            </CardTitle>
+          </CardHeader>
+          {scrapeResult.success && scrapeResult.results && (
+            <CardContent>
+              <div className="space-y-2">
+                {scrapeResult.results.map((r, i) => (
+                  <div key={i} className="flex items-center justify-between rounded-lg border border-zinc-100 p-2.5 dark:border-zinc-800">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">@{r.handle}</span>
+                      <Badge variant="secondary" className="text-[10px]">{r.platform}</Badge>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-zinc-500 dark:text-zinc-400">{r.postsScraped} posts</span>
+                      <Badge variant={r.status === "succeeded" ? "success" : r.status === "failed" ? "destructive" : "secondary"} className="text-[10px]">
+                        {r.status}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          )}
+          {!scrapeResult.success && scrapeResult.error && (
+            <CardContent>
+              <p className="text-sm text-red-600 dark:text-red-400">{scrapeResult.error}</p>
+            </CardContent>
+          )}
+        </Card>
+      )}
 
       {/* Data Info */}
       <Card>

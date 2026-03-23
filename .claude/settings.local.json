@@ -28,7 +28,10 @@
       "Bash(vercel --yes --prod)",
       "Bash(npx prisma:*)",
       "Bash(curl -s https://tic-social-insights.vercel.app/api/accounts)",
-      "Bash(curl -s https://tic-social-insights.vercel.app/api/settings)"
+      "Bash(curl -s https://tic-social-insights.vercel.app/api/settings)",
+      "Bash(curl -s https://tic-social-insights.vercel.app/api/setup)",
+      "Bash(curl -s -X POST https://tic-social-insights.vercel.app/api/accounts -H \"Content-Type: application/json\" -d '{\"\"platform\"\":\"\"tiktok\"\",\"\"handle\"\":\"\"testaccount\"\"}')",
+      "Bash(curl -s -X DELETE https://tic-social-insights.vercel.app/api/accounts/cmn309ciz0000ii042thiu861)"
     ]
   }
 }
