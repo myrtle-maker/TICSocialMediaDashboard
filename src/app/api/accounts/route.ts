@@ -1,6 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+/**
+ * Extract a clean username from a full URL, @-prefixed string, or plain text.
+ */
+function cleanHandle(raw: string): string {
+  let handle = raw.trim();
+
+  // Strip full URLs down to the path
+  try {
+    if (handle.startsWith("http")) {
+      const url = new URL(handle);
+      handle = url.pathname;
+    }
+  } catch {
+    // not a URL
+  }
+
+  // Remove leading/trailing slashes
+  handle = handle.replace(/^\/+|\/+$/g, "");
+
+  // Remove platform path prefixes
+  handle = handle
+    .replace(/^company\//i, "")
+    .replace(/^channel\//i, "")
+    .replace(/^@/, "");
+
+  // Take first path segment only
+  if (handle.includes("/")) {
+    handle = handle.split("/")[0];
+  }
+
+  return handle;
+}
+
 export async function GET() {
   try {
     const accounts = await prisma.account.findMany({
@@ -25,18 +58,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const cleanHandle = handle.replace(/^@/, "").trim();
+    const clean = cleanHandle(handle);
+
+    if (!clean) {
+      return NextResponse.json(
+        { error: "Could not extract a valid username from the input" },
+        { status: 400 }
+      );
+    }
 
     const account = await prisma.account.upsert({
       where: {
-        platform_handle: { platform, handle: cleanHandle },
+        platform_handle: { platform, handle: clean },
       },
       update: {},
       create: {
         platform,
-        platformAccountId: cleanHandle,
-        handle: cleanHandle,
-        displayName: cleanHandle,
+        platformAccountId: clean,
+        handle: clean,
+        displayName: clean,
       },
     });
 
