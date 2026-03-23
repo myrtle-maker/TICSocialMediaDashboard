@@ -5,28 +5,33 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ accountId: string }> }
 ) {
-  const { accountId } = await params;
-  const account = await prisma.account.findUnique({
-    where: { id: accountId },
-  });
+  try {
+    const { accountId } = await params;
+    const account = await prisma.account.findUnique({
+      where: { id: accountId },
+    });
 
-  if (!account) {
-    return NextResponse.json({ error: "Account not found" }, { status: 404 });
+    if (!account) {
+      return NextResponse.json({ error: "Account not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ account });
+  } catch (err) {
+    console.error("Failed to fetch account:", err);
+    return NextResponse.json({ error: "Database not connected" }, { status: 500 });
   }
-
-  return NextResponse.json({ account });
 }
 
 export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ accountId: string }> }
 ) {
-  const { accountId } = await params;
-
   try {
+    const { accountId } = await params;
     await prisma.account.delete({ where: { id: accountId } });
     return NextResponse.json({ success: true });
-  } catch {
-    return NextResponse.json({ error: "Account not found" }, { status: 404 });
+  } catch (err) {
+    console.error("Failed to delete account:", err);
+    return NextResponse.json({ error: "Failed to delete account" }, { status: 500 });
   }
 }
