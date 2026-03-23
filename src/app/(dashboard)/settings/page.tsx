@@ -30,6 +30,7 @@ export default function SettingsPage() {
   const [scraping, setScraping] = useState(false);
   const [scrapeResult, setScrapeResult] = useState<{
     success: boolean;
+    message?: string;
     totalPostsScraped?: number;
     results?: { handle: string; platform: string; status: string; postsScraped: number; error?: string }[];
     error?: string;
@@ -100,6 +101,7 @@ export default function SettingsPage() {
     setScraping(true);
     setScrapeResult(null);
     try {
+      // Step 1: Start the scrape jobs
       const res = await fetch("/api/scrape", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -108,17 +110,81 @@ export default function SettingsPage() {
       const data = await res.json();
       if (!res.ok) {
         setScrapeResult({ success: false, error: data.error });
-      } else {
-        setScrapeResult(data);
-        // Refresh account count
-        fetch("/api/accounts")
-          .then((r) => r.json())
-          .then((d) => setAccountCount(d.accounts?.length ?? 0))
-          .catch(() => {});
+        setScraping(false);
+        return;
       }
+
+      // Show "started" status immediately
+      setScrapeResult({
+        success: true,
+        message: data.message,
+        results: data.results?.map((r: { handle: string; platform: string; status: string; error?: string }) => ({
+          handle: r.handle,
+          platform: r.platform,
+          status: r.status,
+          postsScraped: 0,
+          error: r.error,
+        })),
+      });
+
+      // Step 2: Poll for completion every 15 seconds, up to 5 minutes
+      let attempts = 0;
+      const maxAttempts = 20;
+      const poll = setInterval(async () => {
+        attempts++;
+        try {
+          const collectRes = await fetch("/api/scrape/collect", { method: "POST" });
+          const collectData = await collectRes.json();
+
+          if (collectData.totalCollected > 0 || attempts >= maxAttempts) {
+            clearInterval(poll);
+            setScraping(false);
+            setScrapeResult({
+              success: true,
+              totalPostsScraped: collectData.totalCollected,
+              results: collectData.results?.map((r: { platform: string; status: string; postsCollected: number; error?: string }) => ({
+                handle: r.platform,
+                platform: r.platform,
+                status: r.status,
+                postsScraped: r.postsCollected,
+                error: r.error,
+              })),
+            });
+            // Refresh account count
+            fetch("/api/accounts")
+              .then((r) => r.json())
+              .then((d) => setAccountCount(d.accounts?.length ?? 0))
+              .catch(() => {});
+          }
+
+          // Check if all jobs finished (none still_running)
+          const stillRunning = collectData.results?.some((r: { status: string }) => r.status === "still_running");
+          if (!stillRunning && attempts < maxAttempts) {
+            clearInterval(poll);
+            setScraping(false);
+            setScrapeResult({
+              success: true,
+              totalPostsScraped: collectData.totalCollected,
+              results: collectData.results?.map((r: { platform: string; status: string; postsCollected: number; error?: string }) => ({
+                handle: r.platform,
+                platform: r.platform,
+                status: r.status,
+                postsScraped: r.postsCollected,
+                error: r.error,
+              })),
+            });
+          }
+        } catch {
+          // Ignore poll errors, keep trying
+        }
+
+        if (attempts >= maxAttempts) {
+          clearInterval(poll);
+          setScraping(false);
+        }
+      }, 15000);
     } catch (err) {
       setScrapeResult({ success: false, error: err instanceof Error ? err.message : "Scrape request failed" });
-    } finally {
       setScraping(false);
     }
   };
@@ -310,9 +376,18 @@ export default function SettingsPage() {
         <Card className={scrapeResult.success ? "border-emerald-200 dark:border-emerald-800" : "border-red-200 dark:border-red-800"}>
           <CardHeader>
             <CardTitle className={`text-sm font-medium ${scrapeResult.success ? "text-emerald-700 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
-              {scrapeResult.success ? `Scrape Complete — ${scrapeResult.totalPostsScraped} posts collected` : "Scrape Failed"}
+              {scrapeResult.success
+              ? scrapeResult.totalPostsScraped != null
+                ? `Scrape Complete — ${scrapeResult.totalPostsScraped} posts collected`
+                : "Scrape Jobs Started"
+              : "Scrape Failed"}
             </CardTitle>
           </CardHeader>
+          {scrapeResult.success && scrapeResult.message && (
+            <CardContent>
+              <p className="mb-3 text-sm text-zinc-600 dark:text-zinc-400">{scrapeResult.message}</p>
+            </CardContent>
+          )}
           {scrapeResult.success && scrapeResult.results && (
             <CardContent>
               <div className="space-y-2">
