@@ -94,7 +94,7 @@ export function PostDetailModal({ post, open, onClose }: PostDetailModalProps) {
           {/* Published Date & Link */}
           <div className="flex items-center justify-between border-t border-zinc-100 pt-3 dark:border-zinc-800">
             <span className="text-xs text-zinc-400 dark:text-zinc-500">
-              Published: {post.publishedAt.toLocaleDateString("en-US", {
+              Published: {new Date(post.publishedAt).toLocaleDateString("en-US", {
                 weekday: "short",
                 year: "numeric",
                 month: "short",

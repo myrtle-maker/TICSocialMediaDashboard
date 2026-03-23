@@ -37,7 +37,8 @@
       "Bash(curl -s -X POST https://tic-social-insights.vercel.app/api/accounts -H \"Content-Type: application/json\" -d '{\"\"platform\"\":\"\"tiktok\"\",\"\"handle\"\":\"\"the_investorscentre\"\"}')",
       "Bash(curl -s -X POST https://tic-social-insights.vercel.app/api/accounts -H \"Content-Type: application/json\" -d '{\"\"platform\"\":\"\"instagram\"\",\"\"handle\"\":\"\"the_investors_centre\"\"}')",
       "Bash(curl -s -X POST https://tic-social-insights.vercel.app/api/scrape -H \"Content-Type: application/json\" -d '{\"\"scrapeAll\"\":true}')",
-      "Bash(curl -s -X POST https://tic-social-insights.vercel.app/api/scrape/collect)"
+      "Bash(curl -s -X POST https://tic-social-insights.vercel.app/api/scrape/collect)",
+      "Bash(curl -s https://tic-social-insights.vercel.app/api/analytics/overview)"
     ]
   }
 }
