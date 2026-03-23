@@ -6,19 +6,23 @@ import { formatNumber, truncateText, formatRelativeTime, formatPercentage } from
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PlatformIcon } from "@/components/platforms/platform-icon";
-import { Heart, MessageCircle, Share2, Bookmark, Eye, TrendingUp, ExternalLink } from "lucide-react";
+import { Heart, MessageCircle, Share2, Bookmark, Eye, TrendingUp, ExternalLink, GitCompareArrows } from "lucide-react";
 import { WhyWorkedTooltip } from "@/components/posts/why-worked-tooltip";
 
 interface PostCardProps {
   post: SocialPost;
   onClick?: (post: SocialPost) => void;
+  onCompare?: (post: SocialPost) => void;
   avgER?: number;
+  isSelectedForCompare?: boolean;
 }
 
-export function PostCard({ post, onClick, avgER = 5 }: PostCardProps) {
+export function PostCard({ post, onClick, onCompare, avgER = 5, isSelectedForCompare = false }: PostCardProps) {
   return (
     <Card
-      className="cursor-pointer hover:shadow-md transition-all hover:border-zinc-300 dark:hover:border-zinc-600"
+      className={`cursor-pointer hover:shadow-md transition-all hover:border-zinc-300 dark:hover:border-zinc-600 ${
+        isSelectedForCompare ? "ring-2 ring-blue-500 border-blue-300 dark:border-blue-700" : ""
+      }`}
       onClick={() => onClick?.(post)}
     >
       <CardContent className="p-4">
@@ -84,7 +88,24 @@ export function PostCard({ post, onClick, avgER = 5 }: PostCardProps) {
               <MetricItem icon={MessageCircle} value={post.comments} label="comments" />
               <MetricItem icon={Share2} value={post.shares} label="shares" />
               <MetricItem icon={Bookmark} value={post.saves} label="saves" />
-              <div className="ml-auto flex items-center gap-1.5 text-xs font-medium text-emerald-600">
+              {onCompare && (
+                <button
+                  type="button"
+                  title="Compare this post"
+                  className={`ml-auto rounded p-1 transition-colors ${
+                    isSelectedForCompare
+                      ? "bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400"
+                      : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCompare(post);
+                  }}
+                >
+                  <GitCompareArrows className="h-3.5 w-3.5" />
+                </button>
+              )}
+              <div className={`${onCompare ? "" : "ml-auto "}flex items-center gap-1.5 text-xs font-medium text-emerald-600`}>
                 <TrendingUp className="h-3 w-3" />
                 <span>{formatPercentage(post.engagementRate)}</span>
                 <WhyWorkedTooltip

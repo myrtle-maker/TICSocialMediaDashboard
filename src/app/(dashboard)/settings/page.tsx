@@ -14,6 +14,9 @@ import {
   Check,
   AlertTriangle,
   Loader2,
+  Mail,
+  X,
+  Plus,
 } from "lucide-react";
 import { useFilters } from "@/components/filters/filter-context";
 
@@ -29,6 +32,18 @@ export default function SettingsPage() {
   const [mounted, setMounted] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [confirmRemoveToken, setConfirmRemoveToken] = useState(false);
+  // Email digest state
+  const [subscribers, setSubscribers] = useState<
+    { id: string; email: string; name: string | null; active: boolean; createdAt: string }[]
+  >([]);
+  const [newSubEmail, setNewSubEmail] = useState("");
+  const [newSubName, setNewSubName] = useState("");
+  const [subAdding, setSubAdding] = useState(false);
+  const [subError, setSubError] = useState("");
+  const [subSuccess, setSubSuccess] = useState("");
+  const [sendingDigest, setSendingDigest] = useState(false);
+  const [digestResult, setDigestResult] = useState<string | null>(null);
+
   const [scraping, setScraping] = useState(false);
   const [scrapeResult, setScrapeResult] = useState<{
     success: boolean;
@@ -53,6 +68,12 @@ export default function SettingsPage() {
         if (s.scrapeFrequency) setScrapeFrequency(s.scrapeFrequency);
         if (s.postsPerScrape) setPostsPerScrape(s.postsPerScrape);
       })
+      .catch(() => {});
+
+    // Load email subscribers
+    fetch("/api/email/subscribers")
+      .then((r) => r.json())
+      .then((data) => setSubscribers((data.subscribers ?? []).filter((s: { active: boolean }) => s.active)))
       .catch(() => {});
 
     // Load account count
@@ -190,6 +211,80 @@ export default function SettingsPage() {
     } catch (err) {
       setScrapeResult({ success: false, error: err instanceof Error ? err.message : "Scrape request failed" });
       setScraping(false);
+    }
+  };
+
+  const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  const loadSubscribers = async () => {
+    try {
+      const r = await fetch("/api/email/subscribers");
+      const data = await r.json();
+      setSubscribers((data.subscribers ?? []).filter((s: { active: boolean }) => s.active));
+    } catch {}
+  };
+
+  const handleAddSubscriber = async () => {
+    setSubError("");
+    setSubSuccess("");
+    const email = newSubEmail.trim().toLowerCase();
+    if (!email) {
+      setSubError("Email is required");
+      return;
+    }
+    if (!emailRe.test(email)) {
+      setSubError("Invalid email format");
+      return;
+    }
+    setSubAdding(true);
+    try {
+      const res = await fetch("/api/email/subscribers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, name: newSubName.trim() || undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSubError(data.error || "Failed to add subscriber");
+      } else {
+        setSubSuccess(`${email} added`);
+        setNewSubEmail("");
+        setNewSubName("");
+        setTimeout(() => setSubSuccess(""), 3000);
+        await loadSubscribers();
+      }
+    } catch {
+      setSubError("Failed to add subscriber");
+    } finally {
+      setSubAdding(false);
+    }
+  };
+
+  const handleRemoveSubscriber = async (id: string) => {
+    try {
+      await fetch(`/api/email/subscribers/${id}`, { method: "DELETE" });
+      await loadSubscribers();
+    } catch {}
+  };
+
+  const handleSendDigestNow = async () => {
+    setSendingDigest(true);
+    setDigestResult(null);
+    try {
+      const res = await fetch("/api/email/digest", { method: "POST" });
+      const data = await res.json();
+      if (data.sent > 0) {
+        setDigestResult(`Digest sent to ${data.sent} subscriber${data.sent !== 1 ? "s" : ""}`);
+      } else if (data.errors?.length > 0) {
+        setDigestResult(`Failed: ${data.errors[0]}`);
+      } else {
+        setDigestResult("No emails sent (no subscribers or no recent posts)");
+      }
+    } catch {
+      setDigestResult("Failed to send digest");
+    } finally {
+      setSendingDigest(false);
+      setTimeout(() => setDigestResult(null), 5000);
     }
   };
 
@@ -420,6 +515,122 @@ export default function SettingsPage() {
               Configure your Apify API token above and set CRON_SECRET env var on Vercel to enable auto-scraping.
             </p>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Email Digest */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+            <Mail className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
+            Email Digest
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-zinc-700 dark:text-zinc-300">
+                Weekly digest sends every Monday at 10:00 AM UTC
+              </p>
+              <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                Subscribers receive a summary of top posts, engagement metrics, and insights.
+              </p>
+            </div>
+            <Badge variant="secondary">
+              {subscribers.length} subscriber{subscribers.length !== 1 ? "s" : ""}
+            </Badge>
+          </div>
+
+          {/* Subscriber list */}
+          {subscribers.length > 0 && (
+            <div className="space-y-2">
+              {subscribers.map((sub) => (
+                <div
+                  key={sub.id}
+                  className="flex items-center justify-between rounded-lg border border-zinc-200 p-2.5 dark:border-zinc-700"
+                >
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-500" />
+                    <span className="text-sm text-zinc-900 dark:text-zinc-100">{sub.email}</span>
+                    {sub.name && (
+                      <span className="text-xs text-zinc-500 dark:text-zinc-400">({sub.name})</span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => handleRemoveSubscriber(sub.id)}
+                    className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Add subscriber form */}
+          <div>
+            <p className="mb-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              Add Subscriber
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="email"
+                placeholder="email@example.com"
+                value={newSubEmail}
+                onChange={(e) => {
+                  setNewSubEmail(e.target.value);
+                  setSubError("");
+                }}
+                className="flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+              />
+              <input
+                type="text"
+                placeholder="Name (optional)"
+                value={newSubName}
+                onChange={(e) => setNewSubName(e.target.value)}
+                className="w-36 rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+              />
+              <Button variant="outline" onClick={handleAddSubscriber} disabled={subAdding}>
+                {subAdding ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
+                <span>Add</span>
+              </Button>
+            </div>
+            {subError && (
+              <p className="mt-1 flex items-center text-xs text-red-600 dark:text-red-400">
+                <AlertTriangle className="mr-1 h-3 w-3" />
+                {subError}
+              </p>
+            )}
+            {subSuccess && (
+              <p className="mt-1 flex items-center text-xs text-emerald-600 dark:text-emerald-400">
+                <Check className="mr-1 h-3 w-3" />
+                {subSuccess}
+              </p>
+            )}
+          </div>
+
+          {/* Send now + status */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={handleSendDigestNow}
+              disabled={sendingDigest || subscribers.length === 0}
+            >
+              {sendingDigest ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Mail className="h-4 w-4" />
+              )}
+              <span>{sendingDigest ? "Sending..." : "Send Digest Now"}</span>
+            </Button>
+            {digestResult && (
+              <p className="text-xs text-zinc-600 dark:text-zinc-400">{digestResult}</p>
+            )}
+          </div>
         </CardContent>
       </Card>
 

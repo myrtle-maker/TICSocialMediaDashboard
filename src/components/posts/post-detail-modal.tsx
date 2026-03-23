@@ -8,6 +8,7 @@ import { formatNumber, formatPercentage } from "@/lib/utils";
 import { PlatformIcon } from "@/components/platforms/platform-icon";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EngagementVelocity } from "@/components/posts/engagement-velocity";
 
 interface PostDetailModalProps {
   post: SocialPost | null;
@@ -75,6 +76,21 @@ export function PostDetailModal({ post, open, onClose }: PostDetailModalProps) {
               value={post.engagementRate}
               format="percentage"
             />
+          </div>
+
+          {/* Engagement Pattern */}
+          <div className="mb-4">
+            <h4 className="mb-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+              Engagement Pattern
+            </h4>
+            <div className="flex justify-center rounded-lg border border-zinc-100 p-3 dark:border-zinc-800">
+              <EngagementVelocity
+                postId={post.id}
+                likes={post.likes}
+                views={post.views}
+                publishedAt={post.publishedAt}
+              />
+            </div>
           </div>
 
           {/* Hashtags */}

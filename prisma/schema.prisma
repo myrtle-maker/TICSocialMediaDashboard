@@ -100,3 +100,56 @@ model ScrapeJob {
   @@index([status])
   @@map("scrape_jobs")
 }
+
+model Competitor {
+  id              String   @id @default(cuid())
+  platform        String
+  handle          String
+  displayName     String
+  profileImageUrl String?
+  followers       Int      @default(0)
+  lastScrapedAt   DateTime?
+  createdAt       DateTime @default(now())
+
+  posts CompetitorPost[]
+
+  @@unique([platform, handle])
+  @@map("competitors")
+}
+
+model CompetitorPost {
+  id              String   @id @default(cuid())
+  platformPostId  String
+  platform        String
+  competitorId    String
+  contentType     String
+  caption         String
+  hashtags        String[]
+  hookText        String
+  hookType        String
+  likes           Int      @default(0)
+  comments        Int      @default(0)
+  shares          Int      @default(0)
+  saves           Int      @default(0)
+  views           Int      @default(0)
+  engagementRate  Float    @default(0)
+  publishedAt     DateTime
+  scrapedAt       DateTime @default(now())
+
+  competitor      Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+
+  @@unique([platform, platformPostId])
+  @@index([competitorId])
+  @@index([platform])
+  @@map("competitor_posts")
+}
+
+model EmailSubscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@map("email_subscribers")
+}
