@@ -11,7 +11,7 @@ export function DataFreshness({ lastUpdated }: DataFreshnessProps) {
   if (!lastUpdated) return null;
 
   return (
-    <div className="flex items-center gap-1.5 text-xs text-zinc-400">
+    <div className="flex items-center gap-1.5 text-xs text-zinc-400 dark:text-zinc-500">
       <Clock className="h-3 w-3" />
       <span>Data last updated: {formatRelativeTime(lastUpdated)}</span>
     </div>

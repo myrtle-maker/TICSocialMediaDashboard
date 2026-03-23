@@ -31,7 +31,7 @@ export function KpiCard({
         <MetricTooltip label={label} tooltip={tooltip}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-2xl font-bold text-zinc-900">
+              <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
                 {formattedValue}
               </p>
               {trend && (
@@ -42,7 +42,7 @@ export function KpiCard({
                       ? "text-emerald-600"
                       : trend.value < 0
                         ? "text-red-600"
-                        : "text-zinc-500"
+                        : "text-zinc-500 dark:text-zinc-400"
                   )}
                 >
                   {trend.value > 0 ? (
@@ -60,7 +60,7 @@ export function KpiCard({
               )}
             </div>
             {icon && (
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-100">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
                 {icon}
               </div>
             )}

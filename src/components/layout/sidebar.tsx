@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { ThemeToggle } from "./theme-toggle";
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   "layout-dashboard": LayoutDashboard,
@@ -43,26 +44,26 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "flex flex-col border-r border-zinc-200 bg-white transition-all duration-200",
+        "flex flex-col border-r border-zinc-200 bg-white transition-all duration-200 dark:border-zinc-700 dark:bg-zinc-900",
         collapsed ? "w-16" : "w-64"
       )}
     >
       {/* Logo */}
-      <div className="flex h-16 items-center border-b border-zinc-200 px-4">
+      <div className="flex h-16 items-center border-b border-zinc-200 px-4 dark:border-zinc-700">
         {!collapsed && (
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-900">
-              <BarChart3 className="h-4 w-4 text-white" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-900 dark:bg-zinc-100">
+              <BarChart3 className="h-4 w-4 text-white dark:text-zinc-900" />
             </div>
             <div>
-              <h1 className="text-sm font-bold text-zinc-900">TIC Insights</h1>
-              <p className="text-[10px] text-zinc-500">Social Media Dashboard</p>
+              <h1 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">TIC Insights</h1>
+              <p className="text-[10px] text-zinc-500 dark:text-zinc-400">Social Media Dashboard</p>
             </div>
           </div>
         )}
         {collapsed && (
-          <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-900">
-            <BarChart3 className="h-4 w-4 text-white" />
+          <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-900 dark:bg-zinc-100">
+            <BarChart3 className="h-4 w-4 text-white dark:text-zinc-900" />
           </div>
         )}
       </div>
@@ -83,8 +84,8 @@ export function Sidebar() {
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                 isActive
-                  ? "bg-zinc-100 text-zinc-900"
-                  : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
+                  ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
+                  : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
               )}
             >
               {Icon && <Icon className="h-4 w-4 shrink-0" />}
@@ -94,18 +95,21 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Collapse Toggle */}
-      <div className="border-t border-zinc-200 p-3">
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="flex w-full items-center justify-center rounded-lg p-2 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
-        >
-          {collapsed ? (
-            <ChevronRight className="h-4 w-4" />
-          ) : (
-            <ChevronLeft className="h-4 w-4" />
-          )}
-        </button>
+      {/* Footer: Theme Toggle + Collapse */}
+      <div className="border-t border-zinc-200 p-3 dark:border-zinc-700">
+        <div className="flex items-center justify-between">
+          <ThemeToggle />
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+          >
+            {collapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )}
+          </button>
+        </div>
       </div>
     </aside>
   );

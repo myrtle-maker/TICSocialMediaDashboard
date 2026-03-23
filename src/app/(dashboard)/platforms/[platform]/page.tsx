@@ -36,7 +36,7 @@ export default function SinglePlatformPage() {
   if (!config) {
     return (
       <div className="flex items-center justify-center py-20">
-        <p className="text-zinc-500">Platform not found.</p>
+        <p className="text-zinc-500 dark:text-zinc-400">Platform not found.</p>
       </div>
     );
   }
@@ -46,8 +46,8 @@ export default function SinglePlatformPage() {
       <div className="flex items-center gap-4">
         <PlatformIcon platform={platform} size="lg" />
         <div>
-          <h2 className="text-2xl font-bold text-zinc-900">{config.label}</h2>
-          <p className="text-sm text-zinc-500">
+          <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{config.label}</h2>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
             Performance metrics and posts for {config.label}.
           </p>
         </div>
@@ -102,7 +102,7 @@ export default function SinglePlatformPage() {
 
       {/* Post Feed */}
       <div>
-        <h3 className="mb-4 text-lg font-semibold text-zinc-900">
+        <h3 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
           {config.label} Posts
         </h3>
         <PostFeed posts={posts} />

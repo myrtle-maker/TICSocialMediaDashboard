@@ -1,12 +1,11 @@
 /**
- * In-memory data store backed by seed data.
+ * In-memory data store.
  *
- * Every function respects PostFilters so the dashboard can filter, sort, and
- * aggregate consistently. When Prisma is wired up later, swap these
- * implementations for real DB queries.
+ * Currently returns empty data. When Apify integration is connected,
+ * scraped posts will populate these stores. When Prisma is wired up,
+ * swap these implementations for real DB queries.
  */
 
-import { seedAccounts, seedPosts } from "@/lib/seed-data";
 import type {
   SocialAccount,
   SocialPost,
@@ -22,38 +21,40 @@ import type {
 } from "@/types/social";
 
 // ---------------------------------------------------------------------------
+// Data stores (empty by default — populated via Apify scraping)
+// ---------------------------------------------------------------------------
+
+const accounts: SocialAccount[] = [];
+const posts: SocialPost[] = [];
+
+// ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
 
 function applyFilters(
-  posts: SocialPost[],
+  allPosts: SocialPost[],
   filters?: Partial<PostFilters>,
 ): SocialPost[] {
-  if (!filters) return [...posts];
+  if (!filters) return [...allPosts];
 
-  let result = [...posts];
+  let result = [...allPosts];
 
-  // Platforms
   if (filters.platforms && filters.platforms.length > 0) {
     result = result.filter((p) => filters.platforms!.includes(p.platform));
   }
 
-  // Content types
   if (filters.contentTypes && filters.contentTypes.length > 0) {
     result = result.filter((p) => filters.contentTypes!.includes(p.contentType));
   }
 
-  // Accounts
   if (filters.accounts && filters.accounts.length > 0) {
     result = result.filter((p) => filters.accounts!.includes(p.accountId));
   }
 
-  // Hook types
   if (filters.hookTypes && filters.hookTypes.length > 0) {
     result = result.filter((p) => filters.hookTypes!.includes(p.hookType));
   }
 
-  // Date range
   if (filters.dateRange) {
     const from = new Date(filters.dateRange.from).getTime();
     const to = new Date(filters.dateRange.to).getTime();
@@ -63,17 +64,14 @@ function applyFilters(
     });
   }
 
-  // Min engagement rate
   if (filters.minEngagementRate != null) {
     result = result.filter((p) => p.engagementRate >= filters.minEngagementRate!);
   }
 
-  // Min views
   if (filters.minViews != null) {
     result = result.filter((p) => p.views >= filters.minViews!);
   }
 
-  // Hashtags
   if (filters.hashtags && filters.hashtags.length > 0) {
     const tags = filters.hashtags.map((h) => h.toLowerCase());
     result = result.filter((p) =>
@@ -81,7 +79,6 @@ function applyFilters(
     );
   }
 
-  // Search query
   if (filters.searchQuery && filters.searchQuery.trim() !== "") {
     const q = filters.searchQuery.toLowerCase();
     result = result.filter(
@@ -91,7 +88,6 @@ function applyFilters(
     );
   }
 
-  // Sort
   const sortBy = filters.sortBy ?? "publishedAt";
   const sortOrder = filters.sortOrder ?? "desc";
   result.sort((a, b) => {
@@ -148,19 +144,19 @@ function avg(arr: number[]): number {
 // ---------------------------------------------------------------------------
 
 export function getAccounts(): SocialAccount[] {
-  return [...seedAccounts];
+  return [...accounts];
 }
 
 export function getAccountById(id: string): SocialAccount | undefined {
-  return seedAccounts.find((a) => a.id === id);
+  return accounts.find((a) => a.id === id);
 }
 
 export function getPosts(filters?: Partial<PostFilters>): SocialPost[] {
-  return applyFilters(seedPosts, filters);
+  return applyFilters(posts, filters);
 }
 
 export function getPostById(id: string): SocialPost | undefined {
-  return seedPosts.find((p) => p.id === id);
+  return posts.find((p) => p.id === id);
 }
 
 // ---------------------------------------------------------------------------
@@ -168,18 +164,17 @@ export function getPostById(id: string): SocialPost | undefined {
 // ---------------------------------------------------------------------------
 
 export function getKpis(filters?: Partial<PostFilters>): KpiData {
-  const posts = applyFilters(seedPosts, filters);
+  const filtered = applyFilters(posts, filters);
 
   const totalEngagement = sum(
-    posts.map((p) => p.likes + p.comments + p.shares + p.saves),
+    filtered.map((p) => p.likes + p.comments + p.shares + p.saves),
   );
 
-  // Platform breakdown
   const platformMap = new Map<
     string,
     { posts: number; engagement: number; views: number }
   >();
-  for (const p of posts) {
+  for (const p of filtered) {
     const entry = platformMap.get(p.platform) ?? {
       posts: 0,
       engagement: 0,
@@ -198,23 +193,22 @@ export function getKpis(filters?: Partial<PostFilters>): KpiData {
     }),
   );
 
-  // Top post by engagement rate
   const topPost =
-    posts.length > 0
-      ? posts.reduce((best, p) =>
+    filtered.length > 0
+      ? filtered.reduce((best, p) =>
           p.engagementRate > best.engagementRate ? p : best,
         )
       : null;
 
   return {
-    totalPosts: posts.length,
+    totalPosts: filtered.length,
     totalEngagement,
-    avgEngagementRate: avg(posts.map((p) => p.engagementRate)),
-    totalViews: sum(posts.map((p) => p.views)),
-    totalLikes: sum(posts.map((p) => p.likes)),
-    totalShares: sum(posts.map((p) => p.shares)),
-    totalSaves: sum(posts.map((p) => p.saves)),
-    totalComments: sum(posts.map((p) => p.comments)),
+    avgEngagementRate: avg(filtered.map((p) => p.engagementRate)),
+    totalViews: sum(filtered.map((p) => p.views)),
+    totalLikes: sum(filtered.map((p) => p.likes)),
+    totalShares: sum(filtered.map((p) => p.shares)),
+    totalSaves: sum(filtered.map((p) => p.saves)),
+    totalComments: sum(filtered.map((p) => p.comments)),
     platformBreakdown,
     topPost,
   };
@@ -227,10 +221,10 @@ export function getKpis(filters?: Partial<PostFilters>): KpiData {
 export function getHookAnalysis(
   filters?: Partial<PostFilters>,
 ): HookAnalysis[] {
-  const posts = applyFilters(seedPosts, filters);
+  const filtered = applyFilters(posts, filters);
 
   const groups = new Map<HookType, SocialPost[]>();
-  for (const p of posts) {
+  for (const p of filtered) {
     const arr = groups.get(p.hookType) ?? [];
     arr.push(p);
     groups.set(p.hookType, arr);
@@ -258,10 +252,10 @@ export function getHookAnalysis(
 export function getContentAnalysis(
   filters?: Partial<PostFilters>,
 ): ContentTypeAnalysis[] {
-  const posts = applyFilters(seedPosts, filters);
+  const filtered = applyFilters(posts, filters);
 
   const groups = new Map<ContentType, SocialPost[]>();
-  for (const p of posts) {
+  for (const p of filtered) {
     const arr = groups.get(p.contentType) ?? [];
     arr.push(p);
     groups.set(p.contentType, arr);
@@ -287,14 +281,14 @@ export function getContentAnalysis(
 export function getTrends(
   filters?: Partial<PostFilters>,
 ): TrendDataPoint[] {
-  const posts = applyFilters(seedPosts, filters);
+  const filtered = applyFilters(posts, filters);
 
   const dayMap = new Map<
     string,
     { posts: number; engagement: number; views: number; rates: number[] }
   >();
 
-  for (const p of posts) {
+  for (const p of filtered) {
     const key = formatDateKey(p.publishedAt);
     const entry = dayMap.get(key) ?? {
       posts: 0,
@@ -327,14 +321,14 @@ export function getTrends(
 export function getPostingHeatmap(
   filters?: Partial<PostFilters>,
 ): PostingTimeHeatmap[] {
-  const posts = applyFilters(seedPosts, filters);
+  const filtered = applyFilters(posts, filters);
 
   const cells = new Map<string, { rates: number[]; count: number }>();
 
-  for (const p of posts) {
+  for (const p of filtered) {
     const dt = new Date(p.publishedAt);
-    const day = dt.getUTCDay(); // 0-6
-    const hour = dt.getUTCHours(); // 0-23
+    const day = dt.getUTCDay();
+    const hour = dt.getUTCHours();
     const key = `${day}-${hour}`;
     const entry = cells.get(key) ?? { rates: [], count: 0 };
     entry.rates.push(p.engagementRate);
@@ -360,14 +354,14 @@ export function getPostingHeatmap(
 export function getHashtagPerformance(
   filters?: Partial<PostFilters>,
 ): HashtagPerformance[] {
-  const posts = applyFilters(seedPosts, filters);
+  const filtered = applyFilters(posts, filters);
 
   const map = new Map<
     string,
     { count: number; rates: number[]; views: number }
   >();
 
-  for (const p of posts) {
+  for (const p of filtered) {
     for (const tag of p.hashtags) {
       const entry = map.get(tag) ?? { count: 0, rates: [], views: 0 };
       entry.count += 1;

@@ -51,8 +51,8 @@ export default function PlatformsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-zinc-900">Platforms</h2>
-        <p className="text-sm text-zinc-500">
+        <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Platforms</h2>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">
           Compare performance across all your social media platforms.
         </p>
       </div>
@@ -71,36 +71,36 @@ export default function PlatformsPage() {
                   <PlatformIcon platform={platform} size="lg" />
                   <div>
                     <CardTitle className="text-base">{config.label}</CardTitle>
-                    <p className="text-xs text-zinc-500">
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
                       {accountCount} account{accountCount !== 1 ? "s" : ""}
                     </p>
                   </div>
                 </div>
-                <ArrowRight className="h-4 w-4 text-zinc-400 transition-transform group-hover:translate-x-1" />
+                <ArrowRight className="h-4 w-4 text-zinc-400 transition-transform group-hover:translate-x-1 dark:text-zinc-500" />
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-xs text-zinc-500">Posts</p>
-                    <p className="text-lg font-bold text-zinc-900">
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">Posts</p>
+                    <p className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
                       {formatNumber(stats.posts)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-zinc-500">Engagement</p>
-                    <p className="text-lg font-bold text-zinc-900">
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">Engagement</p>
+                    <p className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
                       {formatNumber(stats.totalEngagement)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-zinc-500">Avg Rate</p>
-                    <p className="text-lg font-bold text-zinc-900">
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">Avg Rate</p>
+                    <p className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
                       {formatPercentage(stats.avgEngagementRate)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-zinc-500">Views</p>
-                    <p className="text-lg font-bold text-zinc-900">
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">Views</p>
+                    <p className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
                       {formatNumber(stats.totalViews)}
                     </p>
                   </div>
@@ -122,20 +122,20 @@ export default function PlatformsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-zinc-200">
-                  <th className="pb-3 text-left font-medium text-zinc-500">
+                <tr className="border-b border-zinc-200 dark:border-zinc-700">
+                  <th className="pb-3 text-left font-medium text-zinc-500 dark:text-zinc-400">
                     Platform
                   </th>
-                  <th className="pb-3 text-right font-medium text-zinc-500">
+                  <th className="pb-3 text-right font-medium text-zinc-500 dark:text-zinc-400">
                     Posts
                   </th>
-                  <th className="pb-3 text-right font-medium text-zinc-500">
+                  <th className="pb-3 text-right font-medium text-zinc-500 dark:text-zinc-400">
                     Total Views
                   </th>
-                  <th className="pb-3 text-right font-medium text-zinc-500">
+                  <th className="pb-3 text-right font-medium text-zinc-500 dark:text-zinc-400">
                     Total Engagement
                   </th>
-                  <th className="pb-3 text-right font-medium text-zinc-500">
+                  <th className="pb-3 text-right font-medium text-zinc-500 dark:text-zinc-400">
                     Avg Engagement Rate
                   </th>
                 </tr>
@@ -144,7 +144,7 @@ export default function PlatformsPage() {
                 {platformData.map(({ platform, config, stats }) => (
                   <tr
                     key={platform}
-                    className="border-b border-zinc-100 last:border-0"
+                    className="border-b border-zinc-100 last:border-0 dark:border-zinc-800"
                   >
                     <td className="py-3">
                       <div className="flex items-center gap-2">

@@ -89,10 +89,10 @@ export default function AudiencePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-zinc-900">
+        <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
           Audience Insights
         </h2>
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">
           Understand when and where your audience is most active.
         </p>
       </div>
@@ -118,12 +118,12 @@ export default function AudiencePage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-sm font-medium">
-            <Clock className="h-4 w-4 text-zinc-500" />
+            <Clock className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
             Active Times Heatmap
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="mb-3 text-xs text-zinc-500">
+          <p className="mb-3 text-xs text-zinc-500 dark:text-zinc-400">
             Engagement rate by day and hour (UTC). Darker cells = higher
             engagement.
           </p>
@@ -135,7 +135,7 @@ export default function AudiencePage() {
                 {Array.from({ length: 24 }, (_, h) => (
                   <div
                     key={h}
-                    className="flex w-7 items-center justify-center text-[9px] text-zinc-400"
+                    className="flex w-7 items-center justify-center text-[9px] text-zinc-400 dark:text-zinc-500"
                   >
                     {HOUR_LABELS[h]}
                   </div>
@@ -144,7 +144,7 @@ export default function AudiencePage() {
               {/* Grid rows */}
               {heatmapGrid.map((row, dayIdx) => (
                 <div key={dayIdx} className="flex items-center">
-                  <div className="w-12 shrink-0 text-xs font-medium text-zinc-500">
+                  <div className="w-12 shrink-0 text-xs font-medium text-zinc-500 dark:text-zinc-400">
                     {DAY_LABELS[dayIdx]}
                   </div>
                   {row.map((cell) => (
@@ -164,7 +164,7 @@ export default function AudiencePage() {
                   ))}
                 </div>
               ))}
-              <div className="mt-3 flex items-center gap-2 text-[10px] text-zinc-500">
+              <div className="mt-3 flex items-center gap-2 text-[10px] text-zinc-500 dark:text-zinc-400">
                 <span>Low</span>
                 <div className="flex">
                   {[0.1, 0.3, 0.5, 0.7, 0.9].map((intensity) => (
@@ -189,7 +189,7 @@ export default function AudiencePage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
-              <Globe className="h-4 w-4 text-zinc-500" />
+              <Globe className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
               Language Breakdown
               <Badge variant="warning" className="ml-2 text-[10px]">
                 Estimated
@@ -201,12 +201,12 @@ export default function AudiencePage() {
               {SIMULATED_LANGUAGES.map((lang) => (
                 <div key={lang.language}>
                   <div className="mb-1 flex items-center justify-between text-sm">
-                    <span className="text-zinc-700">{lang.language}</span>
-                    <span className="font-medium text-zinc-900">
+                    <span className="text-zinc-700 dark:text-zinc-300">{lang.language}</span>
+                    <span className="font-medium text-zinc-900 dark:text-zinc-100">
                       {lang.percentage}%
                     </span>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-zinc-100">
+                  <div className="h-2 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
                     <div
                       className="h-full rounded-full bg-blue-500 transition-all"
                       style={{ width: `${lang.percentage}%` }}
@@ -222,7 +222,7 @@ export default function AudiencePage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
-              <Globe className="h-4 w-4 text-zinc-500" />
+              <Globe className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
               Country Breakdown
               <Badge variant="warning" className="ml-2 text-[10px]">
                 Estimated
@@ -237,10 +237,10 @@ export default function AudiencePage() {
                   className="flex items-center justify-between text-sm"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="w-6 text-center text-xs text-zinc-400">
+                    <span className="w-6 text-center text-xs text-zinc-400 dark:text-zinc-500">
                       {country.code}
                     </span>
-                    <span className="text-zinc-700">{country.country}</span>
+                    <span className="text-zinc-700 dark:text-zinc-300">{country.country}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="h-2 w-24 overflow-hidden rounded-full bg-zinc-100">
@@ -249,7 +249,7 @@ export default function AudiencePage() {
                         style={{ width: `${country.percentage * 2.5}%` }}
                       />
                     </div>
-                    <span className="w-8 text-right font-medium text-zinc-900">
+                    <span className="w-8 text-right font-medium text-zinc-900 dark:text-zinc-100">
                       {country.percentage}%
                     </span>
                   </div>
@@ -269,12 +269,12 @@ export default function AudiencePage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="mb-4 text-xs text-zinc-500">
+          <p className="mb-4 text-xs text-zinc-500 dark:text-zinc-400">
             Based on historical engagement data, these are your top-performing
             posting windows (UTC).
           </p>
           {bestTimes.length === 0 ? (
-            <p className="text-sm text-zinc-400">
+            <p className="text-sm text-zinc-400 dark:text-zinc-500">
               Not enough data to determine best posting times.
             </p>
           ) : (
@@ -282,20 +282,20 @@ export default function AudiencePage() {
               {bestTimes.map((t, idx) => (
                 <div
                   key={`${t.day}-${t.hour}`}
-                  className="rounded-lg border border-zinc-200 p-3 text-center"
+                  className="rounded-lg border border-zinc-200 p-3 text-center dark:border-zinc-700"
                 >
                   <div className="mb-1 flex items-center justify-center gap-1">
                     <span className="text-xs font-bold text-amber-600">
                       #{idx + 1}
                     </span>
                   </div>
-                  <p className="text-sm font-semibold text-zinc-900">
+                  <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                     {t.day} at {t.hour}
                   </p>
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
                     {formatPercentage(t.rate)} avg rate
                   </p>
-                  <p className="text-[10px] text-zinc-400">
+                  <p className="text-[10px] text-zinc-400 dark:text-zinc-500">
                     {t.count} post{t.count !== 1 ? "s" : ""} analyzed
                   </p>
                 </div>

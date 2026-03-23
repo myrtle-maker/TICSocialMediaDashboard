@@ -116,8 +116,8 @@ export default function ContentPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-zinc-900">Content Analysis</h2>
-        <p className="text-sm text-zinc-500">
+        <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Content Analysis</h2>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">
           Understand which content types and posting patterns drive the most
           engagement.
         </p>
@@ -205,7 +205,7 @@ export default function ContentPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="mb-3 text-xs text-zinc-500">
+          <p className="mb-3 text-xs text-zinc-500 dark:text-zinc-400">
             Engagement rate by day of week and hour (UTC). Darker cells indicate
             higher engagement.
           </p>
@@ -217,7 +217,7 @@ export default function ContentPage() {
                 {Array.from({ length: 24 }, (_, h) => (
                   <div
                     key={h}
-                    className="flex w-7 items-center justify-center text-[10px] text-zinc-400"
+                    className="flex w-7 items-center justify-center text-[10px] text-zinc-400 dark:text-zinc-500"
                   >
                     {h}
                   </div>
@@ -226,7 +226,7 @@ export default function ContentPage() {
               {/* Grid rows */}
               {heatmapGrid.map((row, dayIdx) => (
                 <div key={dayIdx} className="flex items-center">
-                  <div className="w-12 shrink-0 text-xs font-medium text-zinc-500">
+                  <div className="w-12 shrink-0 text-xs font-medium text-zinc-500 dark:text-zinc-400">
                     {DAY_LABELS[dayIdx]}
                   </div>
                   {row.map((cell) => (
@@ -247,7 +247,7 @@ export default function ContentPage() {
                 </div>
               ))}
               {/* Legend */}
-              <div className="mt-3 flex items-center gap-2 text-[10px] text-zinc-500">
+              <div className="mt-3 flex items-center gap-2 text-[10px] text-zinc-500 dark:text-zinc-400">
                 <span>Low</span>
                 <div className="flex">
                   {[0.1, 0.3, 0.5, 0.7, 0.9].map((intensity) => (
@@ -282,17 +282,17 @@ export default function ContentPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-zinc-200">
-                  <th className="pb-3 text-left font-medium text-zinc-500">
+                <tr className="border-b border-zinc-200 dark:border-zinc-700">
+                  <th className="pb-3 text-left font-medium text-zinc-500 dark:text-zinc-400">
                     Hashtag
                   </th>
-                  <th className="pb-3 text-right font-medium text-zinc-500">
+                  <th className="pb-3 text-right font-medium text-zinc-500 dark:text-zinc-400">
                     Posts
                   </th>
-                  <th className="pb-3 text-right font-medium text-zinc-500">
+                  <th className="pb-3 text-right font-medium text-zinc-500 dark:text-zinc-400">
                     Avg Engagement Rate
                   </th>
-                  <th className="pb-3 text-right font-medium text-zinc-500">
+                  <th className="pb-3 text-right font-medium text-zinc-500 dark:text-zinc-400">
                     Total Views
                   </th>
                 </tr>
@@ -301,7 +301,7 @@ export default function ContentPage() {
                 {hashtagPerformance.slice(0, 20).map((h) => (
                   <tr
                     key={h.hashtag}
-                    className="border-b border-zinc-100 last:border-0"
+                    className="border-b border-zinc-100 last:border-0 dark:border-zinc-800"
                   >
                     <td className="py-2.5">
                       <Badge variant="secondary">{h.hashtag}</Badge>

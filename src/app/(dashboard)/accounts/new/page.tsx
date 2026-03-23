@@ -30,14 +30,14 @@ export default function AddAccountPage() {
           <Card>
             <CardContent className="flex flex-col items-center p-8 text-center">
               <CheckCircle2 className="mb-4 h-12 w-12 text-emerald-500" />
-              <h3 className="mb-2 text-lg font-semibold text-zinc-900">
+              <h3 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                 Account Added Successfully
               </h3>
-              <p className="mb-1 text-sm text-zinc-600">
+              <p className="mb-1 text-sm text-zinc-600 dark:text-zinc-400">
                 <span className="font-medium">@{username}</span> on{" "}
                 {selectedPlatform && PLATFORM_CONFIG[selectedPlatform].label}
               </p>
-              <p className="mb-6 text-xs text-zinc-400">
+              <p className="mb-6 text-xs text-zinc-400 dark:text-zinc-500">
                 The first scrape will run shortly. Data will appear on your
                 dashboard once the scrape completes.
               </p>
@@ -69,13 +69,13 @@ export default function AddAccountPage() {
       <div className="flex items-center gap-3">
         <Link
           href="/accounts"
-          className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 text-zinc-500 transition-colors hover:bg-zinc-50"
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 text-zinc-500 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800"
         >
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <div>
-          <h2 className="text-2xl font-bold text-zinc-900">Add Account</h2>
-          <p className="text-sm text-zinc-500">
+          <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Add Account</h2>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
             Connect a new social media account for tracking.
           </p>
         </div>
@@ -102,12 +102,12 @@ export default function AddAccountPage() {
                       onClick={() => setSelectedPlatform(platform)}
                       className={`flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all ${
                         isSelected
-                          ? "border-zinc-900 bg-zinc-50"
-                          : "border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50"
+                          ? "border-zinc-900 bg-zinc-50 dark:border-zinc-100 dark:bg-zinc-800"
+                          : "border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"
                       }`}
                     >
                       <PlatformIcon platform={platform} size="md" />
-                      <span className="text-xs font-medium text-zinc-700">
+                      <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
                         {config.label}
                       </span>
                     </button>
@@ -119,7 +119,7 @@ export default function AddAccountPage() {
               <div>
                 <label
                   htmlFor="username"
-                  className="mb-1.5 block text-sm font-medium text-zinc-700"
+                  className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
                 >
                   Username or Profile URL
                 </label>
@@ -134,9 +134,9 @@ export default function AddAccountPage() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   disabled={!selectedPlatform}
-                  className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 disabled:cursor-not-allowed disabled:bg-zinc-100"
+                  className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 disabled:cursor-not-allowed disabled:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:disabled:bg-zinc-800"
                 />
-                <p className="mt-1 text-xs text-zinc-400">
+                <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
                   Enter the username without the @ symbol, or paste the full
                   profile URL.
                 </p>
@@ -144,8 +144,8 @@ export default function AddAccountPage() {
 
               {/* Info */}
               {selectedPlatform && (
-                <div className="rounded-lg bg-zinc-50 p-3">
-                  <p className="text-xs text-zinc-600">
+                <div className="rounded-lg bg-zinc-50 p-3 dark:bg-zinc-800">
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400">
                     We will use the Apify{" "}
                     <Badge variant="secondary" className="text-[10px]">
                       {PLATFORM_CONFIG[selectedPlatform].label} Scraper

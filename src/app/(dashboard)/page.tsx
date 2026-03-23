@@ -54,8 +54,8 @@ export default function OverviewPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-zinc-900">Overview</h2>
-        <p className="text-sm text-zinc-500">
+        <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Overview</h2>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">
           Your social media performance at a glance.
         </p>
       </div>
@@ -66,38 +66,38 @@ export default function OverviewPage() {
           label="Total Posts"
           tooltip="Total number of posts matching your current filters."
           value={kpis.totalPosts}
-          icon={<FileText className="h-5 w-5 text-zinc-500" />}
+          icon={<FileText className="h-5 w-5 text-zinc-500 dark:text-zinc-400" />}
         />
         <KpiCard
           label="Total Engagement"
           tooltip="Sum of all likes, comments, shares, and saves across filtered posts."
           value={kpis.totalEngagement}
-          icon={<TrendingUp className="h-5 w-5 text-zinc-500" />}
+          icon={<TrendingUp className="h-5 w-5 text-zinc-500 dark:text-zinc-400" />}
         />
         <KpiCard
           label="Avg Engagement Rate"
           tooltip="The average engagement rate across all filtered posts."
           value={kpis.avgEngagementRate}
           format="percentage"
-          icon={<Percent className="h-5 w-5 text-zinc-500" />}
+          icon={<Percent className="h-5 w-5 text-zinc-500 dark:text-zinc-400" />}
         />
         <KpiCard
           label="Total Views"
           tooltip="Combined view count across all filtered posts."
           value={kpis.totalViews}
-          icon={<Eye className="h-5 w-5 text-zinc-500" />}
+          icon={<Eye className="h-5 w-5 text-zinc-500 dark:text-zinc-400" />}
         />
         <KpiCard
           label="Total Likes"
           tooltip="Combined like count across all filtered posts."
           value={kpis.totalLikes}
-          icon={<Heart className="h-5 w-5 text-zinc-500" />}
+          icon={<Heart className="h-5 w-5 text-zinc-500 dark:text-zinc-400" />}
         />
         <KpiCard
           label="Total Shares"
           tooltip="Combined share count across all filtered posts."
           value={kpis.totalShares}
-          icon={<Share2 className="h-5 w-5 text-zinc-500" />}
+          icon={<Share2 className="h-5 w-5 text-zinc-500 dark:text-zinc-400" />}
         />
       </div>
 
@@ -165,7 +165,7 @@ export default function OverviewPage() {
 
       {/* Recent Posts */}
       <div>
-        <h3 className="mb-4 text-lg font-semibold text-zinc-900">
+        <h3 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
           Recent Posts
         </h3>
         <PostFeed posts={recentPosts} />

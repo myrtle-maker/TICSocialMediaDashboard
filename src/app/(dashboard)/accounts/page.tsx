@@ -36,8 +36,8 @@ export default function AccountsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-zinc-900">Accounts</h2>
-          <p className="text-sm text-zinc-500">
+          <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Accounts</h2>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
             Manage your tracked social media accounts.
           </p>
         </div>
@@ -53,36 +53,36 @@ export default function AccountsPage() {
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-zinc-900">
+            <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
               {accounts.length}
             </p>
-            <p className="text-xs text-zinc-500">Total Accounts</p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">Total Accounts</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-zinc-900">
+            <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
               {new Set(accounts.map((a) => a.platform)).size}
             </p>
-            <p className="text-xs text-zinc-500">Platforms</p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">Platforms</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-zinc-900">
+            <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
               {formatNumber(
                 accounts.reduce((s, a) => s + a.followers, 0)
               )}
             </p>
-            <p className="text-xs text-zinc-500">Total Followers</p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">Total Followers</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-zinc-900">
+            <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
               {formatNumber(allPosts.length)}
             </p>
-            <p className="text-xs text-zinc-500">Total Posts</p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">Total Posts</p>
           </CardContent>
         </Card>
       </div>
@@ -100,7 +100,7 @@ export default function AccountsPage() {
                 <PlatformIcon platform={account.platform} size="lg" />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-zinc-900">
+                    <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                       {account.displayName}
                     </h3>
                     {account.verified && (
@@ -112,33 +112,33 @@ export default function AccountsPage() {
                       {account.accountType}
                     </Badge>
                   </div>
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
                     @{account.handle} on {config.label}
                   </p>
                 </div>
                 <div className="hidden gap-6 text-center sm:flex">
                   <div>
-                    <p className="text-sm font-bold text-zinc-900">
+                    <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
                       {formatNumber(account.followers)}
                     </p>
-                    <p className="text-[10px] text-zinc-500">Followers</p>
+                    <p className="text-[10px] text-zinc-500 dark:text-zinc-400">Followers</p>
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-zinc-900">
+                    <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
                       {formatNumber(account.postCount)}
                     </p>
-                    <p className="text-[10px] text-zinc-500">Posts</p>
+                    <p className="text-[10px] text-zinc-500 dark:text-zinc-400">Posts</p>
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-zinc-900">
+                    <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
                       {formatNumber(account.totalEngagement)}
                     </p>
-                    <p className="text-[10px] text-zinc-500">Engagement</p>
+                    <p className="text-[10px] text-zinc-500 dark:text-zinc-400">Engagement</p>
                   </div>
                 </div>
                 <div className="hidden text-right lg:block">
-                  <p className="text-[10px] text-zinc-400">Last scraped</p>
-                  <p className="text-xs text-zinc-600">
+                  <p className="text-[10px] text-zinc-400 dark:text-zinc-500">Last scraped</p>
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400">
                     {account.lastScrapedAt
                       ? formatRelativeTime(account.lastScrapedAt)
                       : "Never"}
@@ -149,7 +149,7 @@ export default function AccountsPage() {
                     href={account.externalUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="shrink-0 text-zinc-400 hover:text-zinc-700"
+                    className="shrink-0 text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300"
                   >
                     <ExternalLink className="h-4 w-4" />
                   </a>
@@ -161,12 +161,12 @@ export default function AccountsPage() {
       </div>
 
       {accounts.length === 0 && (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-300 bg-zinc-50/50 px-6 py-16 text-center">
-          <Users className="mb-4 h-12 w-12 text-zinc-300" />
-          <h3 className="mb-1 text-sm font-semibold text-zinc-900">
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-300 bg-zinc-50/50 px-6 py-16 text-center dark:border-zinc-600 dark:bg-zinc-900/50">
+          <Users className="mb-4 h-12 w-12 text-zinc-300 dark:text-zinc-600" />
+          <h3 className="mb-1 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
             No accounts yet
           </h3>
-          <p className="mb-4 text-sm text-zinc-500">
+          <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">
             Add your first social media account to start tracking.
           </p>
           <Link href="/accounts/new">

@@ -23,8 +23,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body className="h-screen overflow-hidden bg-white font-sans antialiased">
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var theme = localStorage.getItem('tic-theme');
+                  if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                    document.documentElement.classList.add('dark');
+                  }
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
+      <body className="h-screen overflow-hidden bg-white font-sans antialiased dark:bg-zinc-950">
         {children}
       </body>
     </html>

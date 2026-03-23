@@ -22,7 +22,7 @@ export function PostDetailModal({ post, open, onClose }: PostDetailModalProps) {
     <Dialog.Root open={open} onOpenChange={(o) => !o && onClose()}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-        <Dialog.Content className="fixed left-[50%] top-[50%] z-50 w-full max-w-2xl translate-x-[-50%] translate-y-[-50%] rounded-xl border border-zinc-200 bg-white p-6 shadow-xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 max-h-[85vh] overflow-y-auto">
+        <Dialog.Content className="fixed left-[50%] top-[50%] z-50 w-full max-w-2xl translate-x-[-50%] translate-y-[-50%] rounded-xl border border-zinc-200 bg-white p-6 shadow-xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 max-h-[85vh] overflow-y-auto dark:border-zinc-700 dark:bg-zinc-900">
           {/* Close button */}
           <Dialog.Close className="absolute right-4 top-4 rounded-sm opacity-70 hover:opacity-100">
             <X className="h-4 w-4" />
@@ -39,8 +39,8 @@ export function PostDetailModal({ post, open, onClose }: PostDetailModalProps) {
 
           {/* Caption */}
           <div className="mb-4">
-            <h4 className="mb-1 text-xs font-medium text-zinc-500">Caption</h4>
-            <p className="text-sm leading-relaxed text-zinc-800 whitespace-pre-wrap">
+            <h4 className="mb-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">Caption</h4>
+            <p className="text-sm leading-relaxed text-zinc-800 whitespace-pre-wrap dark:text-zinc-200">
               {post.caption}
             </p>
           </div>
@@ -80,7 +80,7 @@ export function PostDetailModal({ post, open, onClose }: PostDetailModalProps) {
           {/* Hashtags */}
           {post.hashtags.length > 0 && (
             <div className="mb-4">
-              <h4 className="mb-1.5 text-xs font-medium text-zinc-500">Hashtags</h4>
+              <h4 className="mb-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">Hashtags</h4>
               <div className="flex flex-wrap gap-1.5">
                 {post.hashtags.map((tag) => (
                   <Badge key={tag} variant="secondary" className="text-xs">
@@ -92,8 +92,8 @@ export function PostDetailModal({ post, open, onClose }: PostDetailModalProps) {
           )}
 
           {/* Published Date & Link */}
-          <div className="flex items-center justify-between border-t border-zinc-100 pt-3">
-            <span className="text-xs text-zinc-400">
+          <div className="flex items-center justify-between border-t border-zinc-100 pt-3 dark:border-zinc-800">
+            <span className="text-xs text-zinc-400 dark:text-zinc-500">
               Published: {post.publishedAt.toLocaleDateString("en-US", {
                 weekday: "short",
                 year: "numeric",
@@ -134,12 +134,12 @@ function MetricBox({
   format?: "number" | "percentage";
 }) {
   return (
-    <div className="rounded-lg border border-zinc-100 p-3 text-center">
-      <Icon className="mx-auto mb-1 h-4 w-4 text-zinc-400" />
-      <p className="text-lg font-bold text-zinc-900">
+    <div className="rounded-lg border border-zinc-100 p-3 text-center dark:border-zinc-800">
+      <Icon className="mx-auto mb-1 h-4 w-4 text-zinc-400 dark:text-zinc-500" />
+      <p className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
         {format === "percentage" ? formatPercentage(value) : formatNumber(value)}
       </p>
-      <p className="text-[10px] text-zinc-500">{label}</p>
+      <p className="text-[10px] text-zinc-500 dark:text-zinc-400">{label}</p>
     </div>
   );
 }

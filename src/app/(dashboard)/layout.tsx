@@ -15,7 +15,7 @@ export default function DashboardLayout({
         <Sidebar />
         <div className="flex flex-1 flex-col overflow-hidden">
           <FilterBar />
-          <main className="flex-1 overflow-y-auto bg-zinc-50 p-6">
+          <main className="flex-1 overflow-y-auto bg-zinc-50 p-6 dark:bg-zinc-950">
             {children}
           </main>
         </div>

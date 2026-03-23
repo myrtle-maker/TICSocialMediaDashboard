@@ -23,7 +23,7 @@ export function TopPostPreview({ post }: TopPostPreviewProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-zinc-500">No posts found for the selected filters.</p>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">No posts found for the selected filters.</p>
         </CardContent>
       </Card>
     );
@@ -40,7 +40,7 @@ export function TopPostPreview({ post }: TopPostPreviewProps) {
       <CardContent>
         <div className="flex items-start gap-3">
           {post.thumbnailUrl && (
-            <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-zinc-100">
+            <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
               <img
                 src={post.thumbnailUrl}
                 alt=""
@@ -54,11 +54,11 @@ export function TopPostPreview({ post }: TopPostPreviewProps) {
               <Badge variant="secondary" className="text-[10px]">
                 {HOOK_TYPE_LABELS[post.hookType]}
               </Badge>
-              <span className="text-[10px] text-zinc-400">
+              <span className="text-[10px] text-zinc-400 dark:text-zinc-500">
                 {formatRelativeTime(post.publishedAt)}
               </span>
             </div>
-            <p className="mb-2 text-sm text-zinc-700">
+            <p className="mb-2 text-sm text-zinc-700 dark:text-zinc-300">
               {truncateText(post.caption, 100)}
             </p>
             <div className="flex flex-wrap gap-3">
@@ -77,7 +77,7 @@ export function TopPostPreview({ post }: TopPostPreviewProps) {
 
 function MetricPill({ icon: Icon, value }: { icon: React.ComponentType<{ className?: string }>; value: number }) {
   return (
-    <div className="flex items-center gap-1 text-xs text-zinc-500">
+    <div className="flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400">
       <Icon className="h-3 w-3" />
       <span>{formatNumber(value)}</span>
     </div>

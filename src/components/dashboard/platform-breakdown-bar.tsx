@@ -24,7 +24,7 @@ export function PlatformBreakdownBar({
 
   return (
     <div>
-      <p className="mb-2 text-xs font-medium text-zinc-500">{label}</p>
+      <p className="mb-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">{label}</p>
       <div className="flex h-3 overflow-hidden rounded-full">
         <TooltipProvider delayDuration={100}>
           {data
@@ -65,7 +65,7 @@ export function PlatformBreakdownBar({
                   className="h-2 w-2 rounded-full"
                   style={{ backgroundColor: config.color }}
                 />
-                <span className="text-xs text-zinc-600">{config.label}</span>
+                <span className="text-xs text-zinc-600 dark:text-zinc-400">{config.label}</span>
               </div>
             );
           })}

@@ -16,14 +16,14 @@ interface PostCardProps {
 export function PostCard({ post, onClick }: PostCardProps) {
   return (
     <Card
-      className="cursor-pointer hover:shadow-md transition-all hover:border-zinc-300"
+      className="cursor-pointer hover:shadow-md transition-all hover:border-zinc-300 dark:hover:border-zinc-600"
       onClick={() => onClick?.(post)}
     >
       <CardContent className="p-4">
         <div className="flex gap-3">
           {/* Thumbnail */}
           {post.thumbnailUrl && (
-            <div className="h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-zinc-100">
+            <div className="h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
               <img
                 src={post.thumbnailUrl}
                 alt=""
@@ -46,13 +46,13 @@ export function PostCard({ post, onClick }: PostCardProps) {
               >
                 {HOOK_TYPE_LABELS[post.hookType]}
               </Badge>
-              <span className="ml-auto text-[10px] text-zinc-400">
+              <span className="ml-auto text-[10px] text-zinc-400 dark:text-zinc-500">
                 {formatRelativeTime(post.publishedAt)}
               </span>
             </div>
 
             {/* Caption */}
-            <p className="mb-2 text-sm leading-snug text-zinc-700">
+            <p className="mb-2 text-sm leading-snug text-zinc-700 dark:text-zinc-300">
               {truncateText(post.caption, 120)}
             </p>
 
@@ -62,13 +62,13 @@ export function PostCard({ post, onClick }: PostCardProps) {
                 {post.hashtags.slice(0, 4).map((tag) => (
                   <span
                     key={tag}
-                    className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] text-zinc-500"
+                    className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
                   >
                     {tag}
                   </span>
                 ))}
                 {post.hashtags.length > 4 && (
-                  <span className="text-[10px] text-zinc-400">
+                  <span className="text-[10px] text-zinc-400 dark:text-zinc-500">
                     +{post.hashtags.length - 4} more
                   </span>
                 )}
@@ -104,7 +104,7 @@ function MetricItem({
   label: string;
 }) {
   return (
-    <div className="flex items-center gap-1 text-xs text-zinc-500" title={label}>
+    <div className="flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400" title={label}>
       <Icon className="h-3 w-3" />
       <span>{formatNumber(value)}</span>
     </div>

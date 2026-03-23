@@ -65,8 +65,8 @@ export default function HooksPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-zinc-900">Hook Analysis</h2>
-        <p className="text-sm text-zinc-500">
+        <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Hook Analysis</h2>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">
           Analyze how different hook types perform to craft better opening lines.
         </p>
       </div>
@@ -166,19 +166,19 @@ export default function HooksPage() {
               </div>
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div>
-                  <p className="text-[10px] text-zinc-500">Avg Rate</p>
+                  <p className="text-[10px] text-zinc-500 dark:text-zinc-400">Avg Rate</p>
                   <p className="text-sm font-bold">
                     {formatPercentage(h.avgEngagementRate)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-zinc-500">Avg Views</p>
+                  <p className="text-[10px] text-zinc-500 dark:text-zinc-400">Avg Views</p>
                   <p className="text-sm font-bold">
                     {formatNumber(h.avgViews)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-zinc-500">Avg Shares</p>
+                  <p className="text-[10px] text-zinc-500 dark:text-zinc-400">Avg Shares</p>
                   <p className="text-sm font-bold">
                     {formatNumber(h.avgShares)}
                   </p>
@@ -202,9 +202,9 @@ export default function HooksPage() {
             {topHooks.map((post, idx) => (
               <div
                 key={post.id}
-                className="flex items-start gap-3 rounded-lg border border-zinc-100 p-3 transition-colors hover:bg-zinc-50"
+                className="flex items-start gap-3 rounded-lg border border-zinc-100 p-3 transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800"
               >
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-xs font-bold text-zinc-600">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-xs font-bold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
                   {idx + 1}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -224,10 +224,10 @@ export default function HooksPage() {
                       Score: {post.hookScore.toFixed(1)}
                     </span>
                   </div>
-                  <p className="text-sm text-zinc-700">
+                  <p className="text-sm text-zinc-700 dark:text-zinc-300">
                     &ldquo;{truncateText(post.hookText, 120)}&rdquo;
                   </p>
-                  <div className="mt-1.5 flex gap-3 text-xs text-zinc-500">
+                  <div className="mt-1.5 flex gap-3 text-xs text-zinc-500 dark:text-zinc-400">
                     <span className="flex items-center gap-1">
                       <Eye className="h-3 w-3" />
                       {formatNumber(post.views)}

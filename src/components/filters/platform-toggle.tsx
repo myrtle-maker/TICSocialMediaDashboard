@@ -23,7 +23,7 @@ export function PlatformToggle() {
               "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-all",
               isActive
                 ? "border-transparent text-white shadow-sm"
-                : "border-zinc-200 bg-white text-zinc-400 hover:border-zinc-300"
+                : "border-zinc-200 bg-white text-zinc-400 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-500 dark:hover:border-zinc-600"
             )}
             style={
               isActive
