@@ -1,12 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useFilters } from "@/components/filters/filter-context";
-import { getPostingHeatmap } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatPercentage } from "@/lib/utils";
-import { AlertTriangle, Globe, Clock, Star } from "lucide-react";
+import type { SocialPost, PostingTimeHeatmap } from "@/types/social";
+import { AlertTriangle, Globe, Clock, Star, Loader2 } from "lucide-react";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const HOUR_LABELS = Array.from({ length: 24 }, (_, i) =>
@@ -36,10 +36,71 @@ const SIMULATED_COUNTRIES = [
   { country: "Other", code: "--", percentage: 13 },
 ];
 
+function buildFilterParams(filters: ReturnType<typeof useFilters>["filters"]): string {
+  const params = new URLSearchParams();
+  if (filters.platforms.length > 0) params.set("platforms", filters.platforms.join(","));
+  if (filters.contentTypes.length > 0) params.set("contentTypes", filters.contentTypes.join(","));
+  if (filters.hookTypes.length > 0) params.set("hookTypes", filters.hookTypes.join(","));
+  if (filters.dateRange) {
+    params.set("dateFrom", filters.dateRange.from.toISOString());
+    params.set("dateTo", filters.dateRange.to.toISOString());
+  }
+  if (filters.accounts.length > 0) params.set("accounts", filters.accounts.join(","));
+  if (filters.minEngagementRate !== null) params.set("minEngagementRate", String(filters.minEngagementRate));
+  if (filters.minViews !== null) params.set("minViews", String(filters.minViews));
+  if (filters.hashtags.length > 0) params.set("hashtags", filters.hashtags.join(","));
+  if (filters.searchQuery) params.set("searchQuery", filters.searchQuery);
+  return params.toString();
+}
+
+function computeHeatmap(posts: SocialPost[]): PostingTimeHeatmap[] {
+  const map = new Map<string, { totalRate: number; count: number }>();
+  for (const post of posts) {
+    const d = new Date(post.publishedAt);
+    const day = d.getUTCDay();
+    const hour = d.getUTCHours();
+    const key = `${day}-${hour}`;
+    const existing = map.get(key) ?? { totalRate: 0, count: 0 };
+    existing.totalRate += post.engagementRate;
+    existing.count += 1;
+    map.set(key, existing);
+  }
+  return Array.from(map.entries()).map(([key, d]) => {
+    const [day, hour] = key.split("-").map(Number);
+    return {
+      day,
+      hour,
+      avgEngagementRate: d.count > 0 ? d.totalRate / d.count : 0,
+      postCount: d.count,
+    };
+  });
+}
+
 export default function AudiencePage() {
   const { filters } = useFilters();
 
-  const heatmapData = useMemo(() => getPostingHeatmap(filters), [filters]);
+  const [posts, setPosts] = useState<SocialPost[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const filterParams = buildFilterParams(filters);
+      const res = await fetch(`/api/posts?${filterParams}`);
+      const data = await res.json();
+      setPosts(data.posts ?? []);
+    } catch (err) {
+      console.error("Failed to fetch audience data:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [filters]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const heatmapData = useMemo(() => computeHeatmap(posts), [posts]);
 
   // Build 7x24 grid
   const heatmapGrid = useMemo(() => {
@@ -86,6 +147,14 @@ export default function AudiencePage() {
     }));
   }, [heatmapData]);
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -127,60 +196,64 @@ export default function AudiencePage() {
             Engagement rate by day and hour (UTC). Darker cells = higher
             engagement.
           </p>
-          <div className="overflow-x-auto">
-            <div className="inline-block">
-              {/* Hour labels */}
-              <div className="flex">
-                <div className="w-12 shrink-0" />
-                {Array.from({ length: 24 }, (_, h) => (
-                  <div
-                    key={h}
-                    className="flex w-7 items-center justify-center text-[9px] text-zinc-400 dark:text-zinc-500"
-                  >
-                    {HOUR_LABELS[h]}
+          {posts.length === 0 ? (
+            <p className="text-sm text-zinc-400 dark:text-zinc-500">No post data available for heatmap.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <div className="inline-block">
+                {/* Hour labels */}
+                <div className="flex">
+                  <div className="w-12 shrink-0" />
+                  {Array.from({ length: 24 }, (_, h) => (
+                    <div
+                      key={h}
+                      className="flex w-7 items-center justify-center text-[9px] text-zinc-400 dark:text-zinc-500"
+                    >
+                      {HOUR_LABELS[h]}
+                    </div>
+                  ))}
+                </div>
+                {/* Grid rows */}
+                {heatmapGrid.map((row, dayIdx) => (
+                  <div key={dayIdx} className="flex items-center">
+                    <div className="w-12 shrink-0 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                      {DAY_LABELS[dayIdx]}
+                    </div>
+                    {row.map((cell) => (
+                      <div
+                        key={`${cell.day}-${cell.hour}`}
+                        className="m-0.5 h-6 w-6 rounded-sm transition-colors"
+                        style={{
+                          backgroundColor:
+                            cell.count === 0
+                              ? "#f4f4f5"
+                              : `rgba(16, 185, 129, ${
+                                  0.1 + cell.intensity * 0.9
+                                })`,
+                        }}
+                        title={`${DAY_LABELS[cell.day]} ${cell.hour}:00 - Rate: ${cell.rate.toFixed(2)}%, Posts: ${cell.count}`}
+                      />
+                    ))}
                   </div>
                 ))}
-              </div>
-              {/* Grid rows */}
-              {heatmapGrid.map((row, dayIdx) => (
-                <div key={dayIdx} className="flex items-center">
-                  <div className="w-12 shrink-0 text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                    {DAY_LABELS[dayIdx]}
+                <div className="mt-3 flex items-center gap-2 text-[10px] text-zinc-500 dark:text-zinc-400">
+                  <span>Low</span>
+                  <div className="flex">
+                    {[0.1, 0.3, 0.5, 0.7, 0.9].map((intensity) => (
+                      <div
+                        key={intensity}
+                        className="h-3 w-5 rounded-sm"
+                        style={{
+                          backgroundColor: `rgba(16, 185, 129, ${intensity})`,
+                        }}
+                      />
+                    ))}
                   </div>
-                  {row.map((cell) => (
-                    <div
-                      key={`${cell.day}-${cell.hour}`}
-                      className="m-0.5 h-6 w-6 rounded-sm transition-colors"
-                      style={{
-                        backgroundColor:
-                          cell.count === 0
-                            ? "#f4f4f5"
-                            : `rgba(16, 185, 129, ${
-                                0.1 + cell.intensity * 0.9
-                              })`,
-                      }}
-                      title={`${DAY_LABELS[cell.day]} ${cell.hour}:00 - Rate: ${cell.rate.toFixed(2)}%, Posts: ${cell.count}`}
-                    />
-                  ))}
+                  <span>High</span>
                 </div>
-              ))}
-              <div className="mt-3 flex items-center gap-2 text-[10px] text-zinc-500 dark:text-zinc-400">
-                <span>Low</span>
-                <div className="flex">
-                  {[0.1, 0.3, 0.5, 0.7, 0.9].map((intensity) => (
-                    <div
-                      key={intensity}
-                      className="h-3 w-5 rounded-sm"
-                      style={{
-                        backgroundColor: `rgba(16, 185, 129, ${intensity})`,
-                      }}
-                    />
-                  ))}
-                </div>
-                <span>High</span>
               </div>
             </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 
