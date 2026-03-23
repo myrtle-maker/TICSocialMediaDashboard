@@ -11,6 +11,7 @@ import {
   Settings,
   SlidersHorizontal,
   Lightbulb,
+  Sparkles,
   ChevronLeft,
   ChevronRight,
   LogOut,
@@ -29,10 +30,12 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   settings: Settings,
   "sliders-horizontal": SlidersHorizontal,
   lightbulb: Lightbulb,
+  sparkles: Sparkles,
 };
 
 const navItems = [
   { href: "/", label: "Overview", icon: "layout-dashboard" },
+  { href: "/ai-briefing", label: "AI Briefing", icon: "sparkles", ai: true },
   { href: "/insights", label: "Insights", icon: "lightbulb" },
   { href: "/platforms", label: "Platforms", icon: "grid-3x3" },
   { href: "/content", label: "Content", icon: "bar-chart-3" },
@@ -100,8 +103,15 @@ export function Sidebar() {
                   : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
               )}
             >
-              {Icon && <Icon className="h-4 w-4 shrink-0" />}
-              {!collapsed && <span>{item.label}</span>}
+              {Icon && <Icon className={cn("h-4 w-4 shrink-0", "ai" in item && item.ai && "text-purple-500")} />}
+              {!collapsed && (
+                <span className="flex items-center gap-1.5">
+                  {item.label}
+                  {"ai" in item && item.ai && (
+                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-purple-500" />
+                  )}
+                </span>
+              )}
             </Link>
           );
         })}

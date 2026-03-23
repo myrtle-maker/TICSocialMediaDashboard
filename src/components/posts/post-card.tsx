@@ -7,13 +7,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PlatformIcon } from "@/components/platforms/platform-icon";
 import { Heart, MessageCircle, Share2, Bookmark, Eye, TrendingUp, ExternalLink } from "lucide-react";
+import { WhyWorkedTooltip } from "@/components/posts/why-worked-tooltip";
 
 interface PostCardProps {
   post: SocialPost;
   onClick?: (post: SocialPost) => void;
+  avgER?: number;
 }
 
-export function PostCard({ post, onClick }: PostCardProps) {
+export function PostCard({ post, onClick, avgER = 5 }: PostCardProps) {
   return (
     <Card
       className="cursor-pointer hover:shadow-md transition-all hover:border-zinc-300 dark:hover:border-zinc-600"
@@ -82,9 +84,20 @@ export function PostCard({ post, onClick }: PostCardProps) {
               <MetricItem icon={MessageCircle} value={post.comments} label="comments" />
               <MetricItem icon={Share2} value={post.shares} label="shares" />
               <MetricItem icon={Bookmark} value={post.saves} label="saves" />
-              <div className="ml-auto flex items-center gap-1 text-xs font-medium text-emerald-600">
+              <div className="ml-auto flex items-center gap-1.5 text-xs font-medium text-emerald-600">
                 <TrendingUp className="h-3 w-3" />
                 <span>{formatPercentage(post.engagementRate)}</span>
+                <WhyWorkedTooltip
+                  postId={post.id}
+                  engagementRate={post.engagementRate}
+                  hookType={post.hookType}
+                  contentType={post.contentType}
+                  platform={post.platform}
+                  avgER={avgER}
+                  saves={post.saves}
+                  shares={post.shares}
+                  views={post.views}
+                />
               </div>
             </div>
           </div>

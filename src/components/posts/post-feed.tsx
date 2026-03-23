@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import type { SocialPost } from "@/types/social";
 import { PostCard } from "./post-card";
 import { PostDetailModal } from "./post-detail-modal";
@@ -15,6 +15,12 @@ interface PostFeedProps {
 
 export function PostFeed({ posts, showLoadMore, onLoadMore }: PostFeedProps) {
   const [selectedPost, setSelectedPost] = useState<SocialPost | null>(null);
+
+  const avgER = useMemo(() => {
+    if (posts.length === 0) return 5;
+    const total = posts.reduce((sum, p) => sum + p.engagementRate, 0);
+    return total / posts.length;
+  }, [posts]);
 
   if (posts.length === 0) {
     return (
@@ -34,6 +40,7 @@ export function PostFeed({ posts, showLoadMore, onLoadMore }: PostFeedProps) {
             key={post.id}
             post={post}
             onClick={setSelectedPost}
+            avgER={avgER}
           />
         ))}
       </div>
