@@ -13,6 +13,7 @@ import {
   Lightbulb,
   Sparkles,
   Swords,
+  CalendarDays,
   ChevronLeft,
   ChevronRight,
   LogOut,
@@ -33,6 +34,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   "sliders-horizontal": SlidersHorizontal,
   lightbulb: Lightbulb,
   sparkles: Sparkles,
+  "calendar-days": CalendarDays,
 };
 
 const navItems = [
@@ -41,6 +43,7 @@ const navItems = [
   { href: "/insights", label: "Insights", icon: "lightbulb" },
   { href: "/platforms", label: "Platforms", icon: "grid-3x3" },
   { href: "/content", label: "Content", icon: "bar-chart-3" },
+  { href: "/calendar", label: "Calendar", icon: "calendar-days" },
   { href: "/hooks", label: "Hooks", icon: "zap" },
   { href: "/competitors", label: "Competitors", icon: "swords" },
   { href: "/audience", label: "Audience", icon: "users" },
