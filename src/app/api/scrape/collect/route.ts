@@ -30,9 +30,6 @@ export async function POST() {
     }
     const token = tokenSetting.value;
 
-    const ppsSetting = await prisma.setting.findUnique({ where: { key: "postsPerScrape" } });
-    const maxItems = Math.min(parseInt(ppsSetting?.value ?? "50") || 50, 200);
-
     const runningJobs = await prisma.scrapeJob.findMany({
       where: { status: "running" },
     });
@@ -61,8 +58,10 @@ export async function POST() {
           continue;
         }
 
-        // Fetch results
-        const items = await getDatasetItems(token, run.datasetId, maxItems);
+        // Fetch all items from the dataset — don't cap by postsPerScrape since
+        // multi-URL actors (e.g. YouTube /videos + /shorts) produce more items
+        // than the per-URL limit.
+        const items = await getDatasetItems(token, run.datasetId, 1000);
 
         const platform = job.platform as Platform;
         const transformer = transformerMap[platform];

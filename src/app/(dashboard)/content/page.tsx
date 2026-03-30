@@ -54,11 +54,14 @@ function buildFilterParams(filters: ReturnType<typeof useFilters>["filters"]): s
 }
 
 function computeContentAnalysis(posts: SocialPost[]): ContentTypeAnalysis[] {
-  const map = new Map<string, { count: number; totalRate: number; totalViews: number; totalEngagement: number }>();
+  const map = new Map<string, { count: number; ratedCount: number; totalRate: number; totalViews: number; totalEngagement: number }>();
   for (const post of posts) {
-    const existing = map.get(post.contentType) ?? { count: 0, totalRate: 0, totalViews: 0, totalEngagement: 0 };
+    const existing = map.get(post.contentType) ?? { count: 0, ratedCount: 0, totalRate: 0, totalViews: 0, totalEngagement: 0 };
     existing.count += 1;
-    existing.totalRate += post.engagementRate;
+    if (post.engagementRate > 0) {
+      existing.ratedCount += 1;
+      existing.totalRate += post.engagementRate;
+    }
     existing.totalViews += post.views;
     existing.totalEngagement += post.likes + post.comments + post.shares + post.saves;
     map.set(post.contentType, existing);
@@ -66,7 +69,7 @@ function computeContentAnalysis(posts: SocialPost[]): ContentTypeAnalysis[] {
   return Array.from(map.entries()).map(([contentType, d]) => ({
     contentType: contentType as SocialPost["contentType"],
     postCount: d.count,
-    avgEngagementRate: d.count > 0 ? d.totalRate / d.count : 0,
+    avgEngagementRate: d.ratedCount > 0 ? d.totalRate / d.ratedCount : 0,
     avgViews: d.count > 0 ? d.totalViews / d.count : 0,
     totalEngagement: d.totalEngagement,
   }));
@@ -126,7 +129,7 @@ export default function ContentPage() {
     setLoading(true);
     try {
       const filterParams = buildFilterParams(filters);
-      const res = await fetch(`/api/posts?${filterParams}`);
+      const res = await fetch(`/api/posts?limit=2000&${filterParams}`);
       const data = await res.json();
       setPosts(data.posts ?? []);
     } catch (err) {
