@@ -24,6 +24,8 @@ import {
   Eye,
   Heart,
   Share2,
+  MessageCircle,
+  Bookmark,
   Loader2,
 } from "lucide-react";
 import type { SocialPost, KpiData, TrendDataPoint } from "@/types/social";
@@ -152,7 +154,7 @@ export default function OverviewPage() {
       <HealthScoreRow refreshKey={refreshKey} />
 
       {/* KPI Grid */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-8">
         <KpiCard
           label="Total Posts"
           tooltip="Total number of posts matching your current filters."
@@ -166,8 +168,8 @@ export default function OverviewPage() {
           icon={<TrendingUp className="h-5 w-5 text-zinc-500 dark:text-zinc-400" />}
         />
         <KpiCard
-          label="Avg Engagement Rate"
-          tooltip="The average engagement rate across all filtered posts."
+          label="Avg Eng. Rate"
+          tooltip="Average engagement rate across all filtered posts (engagement ÷ views)."
           value={kpis.avgEngagementRate}
           format="percentage"
           icon={<Percent className="h-5 w-5 text-zinc-500 dark:text-zinc-400" />}
@@ -185,10 +187,22 @@ export default function OverviewPage() {
           icon={<Heart className="h-5 w-5 text-zinc-500 dark:text-zinc-400" />}
         />
         <KpiCard
+          label="Total Comments"
+          tooltip="Combined comment count across all filtered posts."
+          value={kpis.totalComments}
+          icon={<MessageCircle className="h-5 w-5 text-zinc-500 dark:text-zinc-400" />}
+        />
+        <KpiCard
           label="Total Shares"
           tooltip="Combined share count across all filtered posts."
           value={kpis.totalShares}
           icon={<Share2 className="h-5 w-5 text-zinc-500 dark:text-zinc-400" />}
+        />
+        <KpiCard
+          label="Total Saves"
+          tooltip="Combined save/bookmark count across all filtered posts."
+          value={kpis.totalSaves}
+          icon={<Bookmark className="h-5 w-5 text-zinc-500 dark:text-zinc-400" />}
         />
       </div>
 
@@ -201,11 +215,29 @@ export default function OverviewPage() {
               Platform Breakdown
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <PlatformBreakdownBar
               data={engagementBreakdown}
               label="Engagement by Platform"
             />
+            {kpis.platformBreakdown.length > 0 && (
+              <div className="space-y-2 pt-1">
+                {kpis.platformBreakdown
+                  .sort((a, b) => b.engagement - a.engagement)
+                  .map((pb) => (
+                    <div key={pb.platform} className="flex items-center justify-between text-xs">
+                      <span className="font-medium capitalize text-zinc-700 dark:text-zinc-300">
+                        {pb.platform === "twitter" ? "X / Twitter" : pb.platform.charAt(0).toUpperCase() + pb.platform.slice(1)}
+                      </span>
+                      <div className="flex gap-4 text-zinc-500 dark:text-zinc-400">
+                        <span>{pb.posts} posts</span>
+                        <span>{pb.avgEngagementRate.toFixed(2)}% eng.</span>
+                        <span>{(pb.views / 1000).toFixed(0)}k views</span>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

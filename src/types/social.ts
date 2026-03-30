@@ -148,7 +148,7 @@ export interface KpiData {
   totalShares: number;
   totalSaves: number;
   totalComments: number;
-  platformBreakdown: { platform: Platform; posts: number; engagement: number; views: number }[];
+  platformBreakdown: { platform: Platform; posts: number; engagement: number; views: number; avgEngagementRate: number }[];
   topPost: SocialPost | null;
 }
 

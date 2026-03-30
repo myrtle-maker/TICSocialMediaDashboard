@@ -1,27 +1,75 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const posts = await prisma.post.findMany();
+    const { searchParams } = request.nextUrl;
+
+    const where: Prisma.PostWhereInput = {};
+
+    const platforms = searchParams.get("platforms");
+    if (platforms) where.platform = { in: platforms.split(",") };
+
+    const contentTypes = searchParams.get("contentTypes");
+    if (contentTypes) where.contentType = { in: contentTypes.split(",") };
+
+    const hookTypes = searchParams.get("hookTypes");
+    if (hookTypes) where.hookType = { in: hookTypes.split(",") };
+
+    const from = searchParams.get("dateFrom") ?? searchParams.get("from");
+    const to = searchParams.get("dateTo") ?? searchParams.get("to");
+    if (from && to) {
+      where.publishedAt = { gte: new Date(from), lte: new Date(to) };
+    }
+
+    const minEngagementRate = searchParams.get("minEngagementRate");
+    if (minEngagementRate) {
+      where.engagementRate = { gte: parseFloat(minEngagementRate) };
+    }
+
+    const minViews = searchParams.get("minViews");
+    if (minViews) {
+      where.views = { gte: parseInt(minViews) };
+    }
+
+    const searchQuery = searchParams.get("searchQuery") ?? searchParams.get("q");
+    if (searchQuery) {
+      where.OR = [
+        { caption: { contains: searchQuery, mode: "insensitive" } },
+        { hookText: { contains: searchQuery, mode: "insensitive" } },
+      ];
+    }
+
+    const posts = await prisma.post.findMany({ where });
 
     const totalEngagement = posts.reduce(
-      (s, p) => s + p.likes + p.comments + p.shares + p.saves, 0
+      (s, p) => s + p.likes + p.comments + p.shares + p.saves,
+      0
     );
 
-    const platformMap = new Map<string, { posts: number; engagement: number; views: number }>();
+    const platformMap = new Map<string, { posts: number; engagement: number; views: number; rates: number[] }>();
     for (const p of posts) {
-      const entry = platformMap.get(p.platform) ?? { posts: 0, engagement: 0, views: 0 };
+      const entry = platformMap.get(p.platform) ?? { posts: 0, engagement: 0, views: 0, rates: [] };
       entry.posts += 1;
       entry.engagement += p.likes + p.comments + p.shares + p.saves;
       entry.views += p.views;
+      entry.rates.push(p.engagementRate);
       platformMap.set(p.platform, entry);
     }
 
     const platformBreakdown = Array.from(platformMap.entries()).map(
-      ([platform, data]) => ({ platform, ...data })
+      ([platform, data]) => ({
+        platform,
+        posts: data.posts,
+        engagement: data.engagement,
+        views: data.views,
+        avgEngagementRate: data.rates.length > 0
+          ? data.rates.reduce((a, b) => a + b, 0) / data.rates.length
+          : 0,
+      })
     );
 
     const topPost = posts.length > 0

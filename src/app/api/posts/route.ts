@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     const hookTypes = searchParams.get("hookTypes");
     if (hookTypes) where.hookType = { in: hookTypes.split(",") };
 
-    const searchQuery = searchParams.get("q");
+    const searchQuery = searchParams.get("searchQuery") ?? searchParams.get("q");
     if (searchQuery) {
       where.OR = [
         { caption: { contains: searchQuery, mode: "insensitive" } },
@@ -25,8 +25,8 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    const from = searchParams.get("from");
-    const to = searchParams.get("to");
+    const from = searchParams.get("dateFrom") ?? searchParams.get("from");
+    const to = searchParams.get("dateTo") ?? searchParams.get("to");
     if (from && to) {
       where.publishedAt = { gte: new Date(from), lte: new Date(to) };
     }
@@ -34,6 +34,11 @@ export async function GET(request: NextRequest) {
     const minEngagementRate = searchParams.get("minEngagementRate");
     if (minEngagementRate) {
       where.engagementRate = { gte: parseFloat(minEngagementRate) };
+    }
+
+    const minViews = searchParams.get("minViews");
+    if (minViews) {
+      where.views = { gte: parseInt(minViews) };
     }
 
     // Sort
