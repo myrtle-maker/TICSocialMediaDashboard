@@ -159,12 +159,16 @@ export default function SettingsPage() {
           const collectRes = await fetch("/api/scrape/collect", { method: "POST" });
           const collectData = await collectRes.json();
 
-          if (collectData.totalCollected > 0 || attempts >= maxAttempts) {
+          // Stop polling when all jobs have finished (or timed out)
+          const stillRunning = collectData.results?.some((r: { status: string }) => r.status === "still_running");
+          const done = !stillRunning || attempts >= maxAttempts;
+
+          if (done) {
             clearInterval(poll);
             setScraping(false);
             setScrapeResult({
               success: true,
-              totalPostsScraped: collectData.totalCollected,
+              totalPostsScraped: collectData.totalCollected ?? 0,
               results: collectData.results?.map((r: { platform: string; status: string; postsCollected: number; error?: string }) => ({
                 handle: r.platform,
                 platform: r.platform,
@@ -179,25 +183,6 @@ export default function SettingsPage() {
               .then((r) => r.json())
               .then((d) => setAccountCount(d.accounts?.length ?? 0))
               .catch(() => {});
-          }
-
-          // Check if all jobs finished (none still_running)
-          const stillRunning = collectData.results?.some((r: { status: string }) => r.status === "still_running");
-          if (!stillRunning && attempts < maxAttempts) {
-            clearInterval(poll);
-            setScraping(false);
-            setScrapeResult({
-              success: true,
-              totalPostsScraped: collectData.totalCollected,
-              results: collectData.results?.map((r: { platform: string; status: string; postsCollected: number; error?: string }) => ({
-                handle: r.platform,
-                platform: r.platform,
-                status: r.status,
-                postsScraped: r.postsCollected,
-                error: r.error,
-              })),
-            });
-            triggerRefresh();
           }
         } catch {
           // Ignore poll errors, keep trying

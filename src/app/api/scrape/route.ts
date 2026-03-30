@@ -53,6 +53,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No accounts found to scrape" }, { status: 400 });
     }
 
+    // Abandon any previously-running jobs for these accounts so collect
+    // doesn't re-process stale Apify runs from earlier scrapes.
+    const accountIds = accounts.map((a) => a.id);
+    await prisma.scrapeJob.updateMany({
+      where: { accountId: { in: accountIds }, status: "running" },
+      data: { status: "abandoned", completedAt: new Date() },
+    });
+
     const results: { accountId: string; handle: string; platform: string; status: string; runId?: string; error?: string }[] = [];
 
     for (const account of accounts) {

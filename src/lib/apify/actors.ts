@@ -47,7 +47,7 @@ export const ACTOR_CONFIGS: Record<Platform, ActorConfig> = {
     actorId: APIFY_ACTORS.twitter.id,
     label: APIFY_ACTORS.twitter.label,
     buildInput: (handle: string, maxPosts: number) => ({
-      startUrls: [`https://twitter.com/${handle}`],
+      startUrls: [{ url: `https://twitter.com/${handle}` }],
       tweetsDesired: maxPosts,
       includeReplies: false,
       proxyConfig: { useApifyProxy: true },

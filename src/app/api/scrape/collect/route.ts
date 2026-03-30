@@ -30,6 +30,9 @@ export async function POST() {
     }
     const token = tokenSetting.value;
 
+    const ppsSetting = await prisma.setting.findUnique({ where: { key: "postsPerScrape" } });
+    const maxItems = Math.min(parseInt(ppsSetting?.value ?? "50") || 50, 200);
+
     const runningJobs = await prisma.scrapeJob.findMany({
       where: { status: "running" },
     });
@@ -59,7 +62,7 @@ export async function POST() {
         }
 
         // Fetch results
-        const items = await getDatasetItems(token, run.datasetId, 100);
+        const items = await getDatasetItems(token, run.datasetId, maxItems);
 
         const platform = job.platform as Platform;
         const transformer = transformerMap[platform];
