@@ -40,8 +40,28 @@ function getHookText(title: string, description: string): string {
 }
 
 function resolveContentType(raw: YouTubeRawPost): ContentType {
-  if (raw.isShort) return "short";
   if (raw.isLive) return "live";
+  // isShort flag set by scraper, or detect from URL/duration
+  if (raw.isShort) return "short";
+  if (raw.url?.includes("/shorts/")) return "short";
+  // YouTube Shorts are <= 60 seconds; duration comes as "PT59S" or "0:59"
+  if (raw.duration) {
+    const dur = String(raw.duration);
+    // ISO 8601 format: PT30S, PT1M (no seconds part means >60s)
+    const isoMatch = dur.match(/^PT(?:(\d+)M)?(?:(\d+)S)?$/);
+    if (isoMatch) {
+      const mins = parseInt(isoMatch[1] ?? "0");
+      const secs = parseInt(isoMatch[2] ?? "0");
+      if (mins === 0 && secs <= 60) return "short";
+    }
+    // MM:SS format
+    const colonMatch = dur.match(/^(\d+):(\d+)$/);
+    if (colonMatch) {
+      const mins = parseInt(colonMatch[1]);
+      const secs = parseInt(colonMatch[2]);
+      if (mins === 0 && secs <= 60) return "short";
+    }
+  }
   return "video";
 }
 

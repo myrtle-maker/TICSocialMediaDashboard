@@ -37,7 +37,10 @@ export const ACTOR_CONFIGS: Record<Platform, ActorConfig> = {
     actorId: APIFY_ACTORS.youtube.id,
     label: APIFY_ACTORS.youtube.label,
     buildInput: (handle: string, maxPosts: number) => ({
-      startUrls: [{ url: `https://www.youtube.com/@${handle}/videos` }],
+      startUrls: [
+        { url: `https://www.youtube.com/@${handle}/videos` },
+        { url: `https://www.youtube.com/@${handle}/shorts` },
+      ],
       maxResults: maxPosts,
       sortBy: "date",
     }),
