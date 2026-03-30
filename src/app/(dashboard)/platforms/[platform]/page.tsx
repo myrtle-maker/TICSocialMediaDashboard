@@ -61,9 +61,10 @@ export default function SinglePlatformPage() {
       (s, p) => s + p.likes + p.comments + p.shares + p.saves,
       0
     );
+    const postsWithRate = posts.filter((p) => p.engagementRate > 0);
     const avgEngagementRate =
-      totalPosts > 0
-        ? posts.reduce((s, p) => s + p.engagementRate, 0) / totalPosts
+      postsWithRate.length > 0
+        ? postsWithRate.reduce((s, p) => s + p.engagementRate, 0) / postsWithRate.length
         : 0;
     const totalViews = posts.reduce((s, p) => s + p.views, 0);
     const totalLikes = posts.reduce((s, p) => s + p.likes, 0);

@@ -14,14 +14,23 @@ interface InstagramRawPost {
   shortCode?: string;
   caption?: string;
   type?: string;
+  // likes — various field names across scraper versions
   likesCount?: number;
+  likes?: number;
+  // comments
   commentsCount?: number;
+  comments?: number;
+  // views — various field names across scraper versions
   videoViewCount?: number;
+  videoPlayCount?: number;
+  playCount?: number;
+  viewsCount?: number;
   displayUrl?: string;
   url?: string;
   images?: string[];
   videoUrl?: string;
   timestamp?: string;
+  takenAt?: string;
   ownerUsername?: string;
   ownerId?: string;
   hashtags?: string[];
@@ -38,10 +47,12 @@ function getHookText(caption: string): string {
 
 function resolveContentType(raw: InstagramRawPost): ContentType {
   const type = raw.type?.toLowerCase() ?? "";
-  if (type === "video" || type === "reel") return "reel";
-  if (type === "sidecar" || type === "carousel") return "carousel";
+  // Handle Graph API type names (GraphVideo, GraphSidecar, GraphImage)
+  // and plain names (video, reel, sidecar, carousel, image)
+  if (type.includes("video") || type === "reel") return "reel";
+  if (type.includes("sidecar") || type.includes("carousel")) return "carousel";
   if (type === "story") return "story";
-  if (raw.videoUrl) return "video";
+  if (raw.videoUrl) return "reel";
   return "image";
 }
 
@@ -54,14 +65,15 @@ export function transformInstagram(
 
   return rawPosts.map((raw) => {
     const caption = raw.caption ?? "";
-    const likes = raw.likesCount ?? 0;
-    const comments = raw.commentsCount ?? 0;
+    const likes = raw.likesCount ?? raw.likes ?? 0;
+    const comments = raw.commentsCount ?? raw.comments ?? 0;
     const shares = 0; // Instagram API does not expose shares
     const saves = 0; // Instagram API does not expose saves publicly
     const contentType = resolveContentType(raw);
+    // Try all known view count field names across scraper versions
     const views =
       contentType === "reel" || contentType === "video"
-        ? raw.videoViewCount ?? 0
+        ? (raw.videoViewCount ?? raw.videoPlayCount ?? raw.playCount ?? raw.viewsCount ?? 0)
         : 0;
 
     const engagementRate = calculateEngagementRate(
@@ -128,7 +140,7 @@ export function transformInstagram(
           : undefined,
       },
 
-      publishedAt: raw.timestamp ? new Date(raw.timestamp) : now,
+      publishedAt: raw.timestamp ? new Date(raw.timestamp) : raw.takenAt ? new Date(raw.takenAt) : now,
       scrapedAt: now,
     };
   });

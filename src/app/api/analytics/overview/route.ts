@@ -61,23 +61,31 @@ export async function GET(request: NextRequest) {
     }
 
     const platformBreakdown = Array.from(platformMap.entries()).map(
-      ([platform, data]) => ({
-        platform,
-        posts: data.posts,
-        engagement: data.engagement,
-        views: data.views,
-        avgEngagementRate: data.rates.length > 0
-          ? data.rates.reduce((a, b) => a + b, 0) / data.rates.length
-          : 0,
-      })
+      ([platform, data]) => {
+        // Only average posts that actually have a view-based rate
+        const ratedPosts = data.rates.filter((r) => r > 0);
+        return {
+          platform,
+          posts: data.posts,
+          engagement: data.engagement,
+          views: data.views,
+          avgEngagementRate: ratedPosts.length > 0
+            ? ratedPosts.reduce((a, b) => a + b, 0) / ratedPosts.length
+            : 0,
+        };
+      }
     );
 
     const topPost = posts.length > 0
       ? posts.reduce((best, p) => (p.engagementRate > best.engagementRate ? p : best))
       : null;
 
-    const avgRate = posts.length > 0
-      ? posts.reduce((s, p) => s + p.engagementRate, 0) / posts.length
+    // Exclude posts with 0 views from average — platforms like Instagram images
+    // don't expose view counts, so their engagementRate is always 0 and would
+    // incorrectly drag the overall average down.
+    const postsWithRate = posts.filter((p) => p.engagementRate > 0);
+    const avgRate = postsWithRate.length > 0
+      ? postsWithRate.reduce((s, p) => s + p.engagementRate, 0) / postsWithRate.length
       : 0;
 
     return NextResponse.json({

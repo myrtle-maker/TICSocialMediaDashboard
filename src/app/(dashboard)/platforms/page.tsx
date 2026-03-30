@@ -34,9 +34,10 @@ function computePlatformStats(posts: SocialPost[], platform: Platform) {
     (s, p) => s + p.likes + p.comments + p.shares + p.saves,
     0
   );
+  const postsWithRate = filtered.filter((p) => p.engagementRate > 0);
   const avgRate =
-    filtered.length > 0
-      ? filtered.reduce((s, p) => s + p.engagementRate, 0) / filtered.length
+    postsWithRate.length > 0
+      ? postsWithRate.reduce((s, p) => s + p.engagementRate, 0) / postsWithRate.length
       : 0;
   const totalViews = filtered.reduce((s, p) => s + p.views, 0);
   return {
