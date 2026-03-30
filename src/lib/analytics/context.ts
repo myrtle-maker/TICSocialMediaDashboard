@@ -40,6 +40,31 @@ export interface PostSummary {
   publishedAt: string;
 }
 
+export interface HashtagStat {
+  hashtag: string;
+  postCount: number;
+  avgEngagementRate: number;
+  totalViews: number;
+}
+
+export interface HookTypeRank {
+  hookType: string;
+  postCount: number;
+  avgEngagementRate: number;
+}
+
+export interface PostingTimeStat {
+  label: string;
+  avgEngagementRate: number;
+}
+
+export interface ContentTypeStat {
+  contentType: string;
+  postCount: number;
+  avgEngagementRate: number;
+  avgViews: number;
+}
+
 export interface AnalyticsContext {
   summary: {
     postCount: number;
@@ -60,11 +85,18 @@ export interface AnalyticsContext {
   topPosts: PostSummary[];
   bottomPosts: PostSummary[];
   overallTrend: "improving" | "declining" | "stable";
+  topHashtags: HashtagStat[];
+  hookTypeRankings: HookTypeRank[];
+  bestPostingDays: PostingTimeStat[];
+  bestPostingHours: PostingTimeStat[];
+  contentTypeStats: ContentTypeStat[];
 }
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 function toPostSummary(p: {
   id: string;
@@ -107,7 +139,9 @@ function bestByAvgER<T extends { engagementRate: number }>(
   let bestAvg = -1;
   for (const [k, group] of groups) {
     if (group.length < 2) continue;
-    const a = avg(group.map((g) => g.engagementRate));
+    const ratedGroup = group.filter((g) => g.engagementRate > 0);
+    if (ratedGroup.length === 0) continue;
+    const a = avg(ratedGroup.map((g) => g.engagementRate));
     if (a > bestAvg) {
       bestAvg = a;
       best = k;
@@ -160,41 +194,113 @@ export async function getAnalyticsContext(): Promise<AnalyticsContext> {
       recommendation: i.recommendation,
     }));
 
-  // Per-platform stats
+  // Per-platform stats — exclude zero-rate posts from averages
   const platformGroups = groupBy(posts, (p) => p.platform);
   const platformStats: PlatformStats[] = [];
   for (const [plat, group] of platformGroups) {
-    const label =
-      PLATFORM_CONFIG[plat as Platform]?.label ?? plat;
+    const label = PLATFORM_CONFIG[plat as Platform]?.label ?? plat;
+    const ratedGroup = group.filter((p) => p.engagementRate > 0);
     platformStats.push({
       platform: plat,
       label,
       postCount: group.length,
-      avgEngagementRate: avg(group.map((p) => p.engagementRate)),
+      avgEngagementRate: ratedGroup.length > 0 ? avg(ratedGroup.map((p) => p.engagementRate)) : 0,
       avgViews: avg(group.map((p) => p.views)),
       bestContentType: bestByAvgER(group, (p) => p.contentType),
       bestHookType: bestByAvgER(group, (p) => p.hookType),
     });
   }
 
-  // Top 5 and bottom 5 by ER
-  const topPosts = topN(posts, 5, (p) => p.engagementRate).map(toPostSummary);
-  const bottomPosts = bottomN(posts, 5, (p) => p.engagementRate).map(toPostSummary);
+  // Top 10 and bottom 10 by ER (exclude zero-rate from bottom)
+  const postsWithRate = posts.filter((p) => p.engagementRate > 0);
+  const topPosts = topN(postsWithRate, 10, (p) => p.engagementRate).map(toPostSummary);
+  const bottomPosts = bottomN(postsWithRate, 10, (p) => p.engagementRate).map(toPostSummary);
 
   // Overall trend: compare avg ER of first half vs second half of posts (by date)
   let overallTrend: "improving" | "declining" | "stable" = "stable";
-  if (posts.length >= 10) {
-    const sorted = [...posts].sort(
+  if (postsWithRate.length >= 10) {
+    const sorted = [...postsWithRate].sort(
       (a, b) => a.publishedAt.getTime() - b.publishedAt.getTime()
     );
-    const points = sorted.map((p, i) => ({
-      x: i,
-      y: p.engagementRate,
-    }));
+    const points = sorted.map((p, i) => ({ x: i, y: p.engagementRate }));
     const slope = trendSlope(points);
     if (slope > 0.001) overallTrend = "improving";
     else if (slope < -0.001) overallTrend = "declining";
   }
+
+  // Top hashtags by avg engagement rate (min 2 posts)
+  const hashtagMap = new Map<string, { count: number; totalRate: number; totalViews: number }>();
+  for (const post of posts) {
+    for (const tag of post.hashtags) {
+      const existing = hashtagMap.get(tag) ?? { count: 0, totalRate: 0, totalViews: 0 };
+      existing.count += 1;
+      existing.totalRate += post.engagementRate;
+      existing.totalViews += post.views;
+      hashtagMap.set(tag, existing);
+    }
+  }
+  const topHashtags: HashtagStat[] = Array.from(hashtagMap.entries())
+    .filter(([, d]) => d.count >= 2)
+    .map(([hashtag, d]) => ({
+      hashtag,
+      postCount: d.count,
+      avgEngagementRate: d.totalRate / d.count,
+      totalViews: d.totalViews,
+    }))
+    .sort((a, b) => b.avgEngagementRate - a.avgEngagementRate)
+    .slice(0, 10);
+
+  // Hook type rankings by avg engagement rate
+  const hookGroups = groupBy(postsWithRate, (p) => p.hookType);
+  const hookTypeRankings: HookTypeRank[] = Array.from(hookGroups.entries())
+    .filter(([, group]) => group.length >= 2)
+    .map(([hookType, group]) => ({
+      hookType,
+      postCount: group.length,
+      avgEngagementRate: avg(group.map((p) => p.engagementRate)),
+    }))
+    .sort((a, b) => b.avgEngagementRate - a.avgEngagementRate);
+
+  // Best posting days and hours (UTC)
+  const dayMap = new Map<number, { totalRate: number; count: number }>();
+  const hourMap = new Map<number, { totalRate: number; count: number }>();
+  for (const post of postsWithRate) {
+    const d = new Date(post.publishedAt);
+    const day = d.getUTCDay();
+    const hour = d.getUTCHours();
+    const dayEntry = dayMap.get(day) ?? { totalRate: 0, count: 0 };
+    dayEntry.totalRate += post.engagementRate;
+    dayEntry.count += 1;
+    dayMap.set(day, dayEntry);
+    const hourEntry = hourMap.get(hour) ?? { totalRate: 0, count: 0 };
+    hourEntry.totalRate += post.engagementRate;
+    hourEntry.count += 1;
+    hourMap.set(hour, hourEntry);
+  }
+  const bestPostingDays: PostingTimeStat[] = Array.from(dayMap.entries())
+    .filter(([, d]) => d.count >= 2)
+    .map(([day, d]) => ({ label: DAY_NAMES[day], avgEngagementRate: d.totalRate / d.count }))
+    .sort((a, b) => b.avgEngagementRate - a.avgEngagementRate)
+    .slice(0, 3);
+  const bestPostingHours: PostingTimeStat[] = Array.from(hourMap.entries())
+    .filter(([, d]) => d.count >= 2)
+    .map(([hour, d]) => ({ label: `${hour}:00 UTC`, avgEngagementRate: d.totalRate / d.count }))
+    .sort((a, b) => b.avgEngagementRate - a.avgEngagementRate)
+    .slice(0, 3);
+
+  // Content type stats
+  const contentTypeGroups = groupBy(posts, (p) => p.contentType);
+  const contentTypeStats: ContentTypeStat[] = Array.from(contentTypeGroups.entries())
+    .map(([contentType, group]) => {
+      const rated = group.filter((p) => p.engagementRate > 0);
+      return {
+        contentType,
+        postCount: group.length,
+        avgEngagementRate: rated.length > 0 ? avg(rated.map((p) => p.engagementRate)) : 0,
+        avgViews: avg(group.map((p) => p.views)),
+      };
+    })
+    .sort((a, b) => b.avgEngagementRate - a.avgEngagementRate);
 
   return {
     summary: {
@@ -209,5 +315,10 @@ export async function getAnalyticsContext(): Promise<AnalyticsContext> {
     topPosts,
     bottomPosts,
     overallTrend,
+    topHashtags,
+    hookTypeRankings,
+    bestPostingDays,
+    bestPostingHours,
+    contentTypeStats,
   };
 }

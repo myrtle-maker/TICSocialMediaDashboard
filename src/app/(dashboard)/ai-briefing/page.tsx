@@ -8,6 +8,7 @@ import {
   AlertCircle,
   ChevronRight,
   Send,
+  Target,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -36,18 +37,22 @@ interface PredictResult {
 
 const BRIEFING_KEY = "tic-ai-briefing";
 const BRIEFING_TS_KEY = "tic-ai-briefing-ts";
+const BRIEFING_FOCUS_KEY = "tic-ai-briefing-focus";
 
-function loadCachedBriefing(): { text: string; timestamp: number } | null {
+function loadCachedBriefing(): { text: string; timestamp: number; focus: string | null } | null {
   if (typeof window === "undefined") return null;
   const text = localStorage.getItem(BRIEFING_KEY);
   const ts = localStorage.getItem(BRIEFING_TS_KEY);
-  if (text && ts) return { text, timestamp: Number(ts) };
+  const focus = localStorage.getItem(BRIEFING_FOCUS_KEY);
+  if (text && ts) return { text, timestamp: Number(ts), focus: focus || null };
   return null;
 }
 
-function saveBriefing(text: string) {
+function saveBriefing(text: string, focus: string | null) {
   localStorage.setItem(BRIEFING_KEY, text);
   localStorage.setItem(BRIEFING_TS_KEY, String(Date.now()));
+  if (focus) localStorage.setItem(BRIEFING_FOCUS_KEY, focus);
+  else localStorage.removeItem(BRIEFING_FOCUS_KEY);
 }
 
 function timeAgo(ts: number): string {
@@ -87,7 +92,6 @@ function ContentPredictor() {
     function tick(now: number) {
       const elapsed = now - start;
       const progress = Math.min(elapsed / duration, 1);
-      // ease-out
       const eased = 1 - Math.pow(1 - progress, 3);
       setAnimatedScore(Math.round(target * eased));
       if (progress < 1) requestAnimationFrame(tick);
@@ -342,7 +346,6 @@ function renderBriefingText(text: string) {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
-    // Headings
     if (line.startsWith("### ")) {
       elements.push(
         <h3
@@ -366,7 +369,6 @@ function renderBriefingText(text: string) {
       continue;
     }
 
-    // Bullet items
     if (line.match(/^[-*]\s/)) {
       elements.push(
         <li
@@ -379,7 +381,6 @@ function renderBriefingText(text: string) {
       continue;
     }
 
-    // Numbered items
     if (line.match(/^\d+\.\s/)) {
       elements.push(
         <li
@@ -392,13 +393,11 @@ function renderBriefingText(text: string) {
       continue;
     }
 
-    // Empty line
     if (line.trim() === "") {
       elements.push(<div key={i} className="h-2" />);
       continue;
     }
 
-    // Regular paragraph
     elements.push(
       <p key={i} className="text-sm text-zinc-700 leading-relaxed dark:text-zinc-300">
         {renderInline(line)}
@@ -409,7 +408,6 @@ function renderBriefingText(text: string) {
   return elements;
 }
 
-/** Handle **bold** within text */
 function renderInline(text: string): React.ReactNode {
   const parts = text.split(/(\*\*.*?\*\*)/g);
   return parts.map((part, i) => {
@@ -425,12 +423,31 @@ function renderInline(text: string): React.ReactNode {
 }
 
 // ---------------------------------------------------------------------------
+// Focus options
+// ---------------------------------------------------------------------------
+
+const FOCUS_OPTIONS = [
+  { value: "", label: "General strategy (no specific focus)" },
+  { value: "Grow follower count across all platforms", label: "Grow followers" },
+  { value: "Maximise engagement rate on every post", label: "Boost engagement" },
+  { value: "Increase video views and reach", label: "Increase views & reach" },
+  { value: "Improve Instagram performance", label: "Instagram growth" },
+  { value: "Improve TikTok performance", label: "TikTok growth" },
+  { value: "Improve YouTube performance including Shorts", label: "YouTube growth" },
+  { value: "Improve LinkedIn performance", label: "LinkedIn growth" },
+  { value: "Build a stronger content calendar with consistent posting", label: "Posting consistency" },
+  { value: "Identify and double down on our best-performing content types", label: "Double down on winners" },
+];
+
+// ---------------------------------------------------------------------------
 // AI Strategy Briefing Section
 // ---------------------------------------------------------------------------
 
 function StrategyBriefing() {
   const [briefing, setBriefing] = useState<string>("");
   const [timestamp, setTimestamp] = useState<number | null>(null);
+  const [cachedFocus, setCachedFocus] = useState<string | null>(null);
+  const [focus, setFocus] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const textRef = useRef<HTMLDivElement>(null);
@@ -441,6 +458,7 @@ function StrategyBriefing() {
     if (cached) {
       setBriefing(cached.text);
       setTimestamp(cached.timestamp);
+      setCachedFocus(cached.focus);
     }
   }, []);
 
@@ -449,8 +467,14 @@ function StrategyBriefing() {
     setError(null);
     setBriefing("");
 
+    const activeFocus = focus || null;
+
     try {
-      const res = await fetch("/api/ai/briefing", { method: "POST" });
+      const res = await fetch("/api/ai/briefing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ focus: activeFocus }),
+      });
 
       if (!res.ok) {
         const data = await res.json();
@@ -477,15 +501,14 @@ function StrategyBriefing() {
         if (done) break;
         accumulated += decoder.decode(value, { stream: true });
         setBriefing(accumulated);
-        // Auto-scroll
         if (textRef.current) {
           textRef.current.scrollTop = textRef.current.scrollHeight;
         }
       }
 
-      // Save to cache
-      saveBriefing(accumulated);
+      saveBriefing(accumulated, activeFocus);
       setTimestamp(Date.now());
+      setCachedFocus(activeFocus);
     } catch {
       setError(
         "Unable to generate briefing. Check your Anthropic API key in Settings."
@@ -493,7 +516,11 @@ function StrategyBriefing() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [focus]);
+
+  const focusLabel = cachedFocus
+    ? FOCUS_OPTIONS.find((o) => o.value === cachedFocus)?.label ?? cachedFocus
+    : null;
 
   return (
     <Card>
@@ -521,7 +548,29 @@ function StrategyBriefing() {
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
+        {/* Focus selector */}
+        {!briefing && !loading && (
+          <div>
+            <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+              <Target className="h-3.5 w-3.5" />
+              Briefing focus (optional)
+            </label>
+            <Select value={focus} onValueChange={setFocus}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="General strategy (no specific focus)" />
+              </SelectTrigger>
+              <SelectContent>
+                {FOCUS_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
         {/* Error */}
         {error && (
           <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
@@ -532,7 +581,7 @@ function StrategyBriefing() {
 
         {/* Empty state */}
         {!briefing && !loading && !error && (
-          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-zinc-50/50 px-6 py-14 text-center dark:border-zinc-600 dark:bg-zinc-900/50">
+          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-zinc-50/50 px-6 py-12 text-center dark:border-zinc-600 dark:bg-zinc-900/50">
             <Sparkles className="mb-4 h-10 w-10 text-zinc-300 dark:text-zinc-600" />
             <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">
               Get an AI-powered strategy briefing based on your content
@@ -548,7 +597,7 @@ function StrategyBriefing() {
           </div>
         )}
 
-        {/* Loading / streaming */}
+        {/* Loading */}
         {loading && !briefing && (
           <div className="flex items-center gap-3 py-8">
             <Loader2 className="h-5 w-5 animate-spin text-purple-500" />
@@ -560,13 +609,57 @@ function StrategyBriefing() {
 
         {/* Briefing content */}
         {briefing && (
-          <div
-            ref={textRef}
-            className="max-h-[600px] overflow-y-auto border-l-4 border-blue-500 pl-4"
-          >
-            {renderBriefingText(briefing)}
-            {loading && (
-              <span className="ml-0.5 inline-block h-4 w-1.5 animate-pulse rounded-sm bg-zinc-400 dark:bg-zinc-500" />
+          <div className="space-y-3">
+            {/* Focus chip */}
+            {focusLabel && !loading && (
+              <div className="flex items-center gap-2">
+                <Target className="h-3.5 w-3.5 text-purple-500" />
+                <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                  Focused on:{" "}
+                  <span className="font-medium text-purple-600 dark:text-purple-400">
+                    {focusLabel}
+                  </span>
+                </span>
+              </div>
+            )}
+            <div
+              ref={textRef}
+              className="max-h-[700px] overflow-y-auto rounded-lg border border-zinc-200 bg-zinc-50/50 px-5 py-4 dark:border-zinc-700 dark:bg-zinc-900/30"
+            >
+              {renderBriefingText(briefing)}
+              {loading && (
+                <span className="ml-0.5 inline-block h-4 w-1.5 animate-pulse rounded-sm bg-zinc-400 dark:bg-zinc-500" />
+              )}
+            </div>
+            {/* Regenerate with new focus — shown below the briefing */}
+            {!loading && (
+              <div className="flex flex-wrap items-end gap-3 pt-1">
+                <div className="flex-1 min-w-[200px]">
+                  <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                    <Target className="h-3.5 w-3.5" />
+                    Change focus and regenerate
+                  </label>
+                  <Select value={focus} onValueChange={setFocus}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="General strategy (no specific focus)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {FOCUS_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <button
+                  onClick={generateBriefing}
+                  className="flex h-9 items-center gap-1.5 rounded-lg bg-purple-600 px-4 text-sm font-medium text-white transition-colors hover:bg-purple-700"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Regenerate
+                </button>
+              </div>
             )}
           </div>
         )}

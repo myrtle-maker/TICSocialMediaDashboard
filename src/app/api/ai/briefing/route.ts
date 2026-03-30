@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { getAnalyticsContext } from "@/lib/analytics/context";
 
-export async function POST() {
+export async function POST(request: Request) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return Response.json(
@@ -11,6 +11,14 @@ export async function POST() {
       },
       { status: 400 }
     );
+  }
+
+  let focus: string | null = null;
+  try {
+    const body = await request.json().catch(() => ({}));
+    if (body && typeof body.focus === "string") focus = body.focus;
+  } catch {
+    // no body is fine
   }
 
   try {
@@ -25,15 +33,19 @@ export async function POST() {
       );
     }
 
+    const focusInstruction = focus
+      ? `\n\nThe team has requested this briefing focus specifically on: **${focus}**. Weight your analysis and recommendations toward this goal.`
+      : "";
+
     const systemPrompt = `You are a senior social media strategist working for a company that manages multiple social media accounts. You have deep expertise in content strategy, audience engagement, and platform-specific best practices.
 
-Your task is to write a concise, actionable weekly strategy briefing based on the analytics data provided. Write in a professional but direct tone — like a strategist briefing a CEO.
+Your task is to write a concise, actionable weekly strategy briefing based on the analytics data provided. Write in a professional but direct tone — like a strategist briefing a CEO.${focusInstruction}
 
 Use markdown formatting:
-- Use **bold** for emphasis
+- Use **bold** for key metrics and important points
 - Use bullet points for lists
 - Use ### for section headers
-- Keep it concise — no fluff
+- Keep each section tight — no filler
 
 Structure your briefing with these sections:
 ### Weekly Performance Summary
@@ -41,9 +53,13 @@ Structure your briefing with these sections:
 ### What's Not Working (and Why)
 ### Content Recommendations for Next Week
 ### Platform-Specific Advice
+### This Week's Top 3 Actions
 
 For "What's Working" and "What's Not Working", reference specific posts by their hook text when available.
-For recommendations, be specific — suggest actual caption hooks, content types, and posting strategies based on the data patterns.`;
+For "Content Recommendations", be specific — suggest actual caption hooks, content types, hashtags, and posting times based on the data.
+For "This Week's Top 3 Actions", give exactly 3 numbered, concrete, immediately actionable tasks the team should do this week — prioritised by expected impact.`;
+
+    const fmt = (rate: number) => `${(rate * 100).toFixed(2)}%`;
 
     const userPrompt = `Here is the analytics data for the last 90 days:
 
@@ -58,7 +74,7 @@ For recommendations, be specific — suggest actual caption hooks, content types
 ${context.topInsights
   .map(
     (i, idx) =>
-      `${idx + 1}. [${i.priority.toUpperCase()}] ${i.title}: ${i.description}${i.recommendation ? ` → Recommendation: ${i.recommendation}` : ""}`
+      `${idx + 1}. [${i.priority.toUpperCase()}] ${i.title}: ${i.description}${i.recommendation ? ` → ${i.recommendation}` : ""}`
   )
   .join("\n")}
 
@@ -66,23 +82,59 @@ ${context.topInsights
 ${context.platformStats
   .map(
     (p) =>
-      `- ${p.label}: ${p.postCount} posts, avg ER ${(p.avgEngagementRate * 100).toFixed(2)}%, avg views ${Math.round(p.avgViews).toLocaleString()}, best content type: ${p.bestContentType ?? "N/A"}, best hook type: ${p.bestHookType ?? "N/A"}`
+      `- ${p.label}: ${p.postCount} posts, avg ER ${fmt(p.avgEngagementRate)}, avg views ${Math.round(p.avgViews).toLocaleString()}, best content type: ${p.bestContentType ?? "N/A"}, best hook type: ${p.bestHookType ?? "N/A"}`
   )
   .join("\n")}
 
-**Top 5 Posts (by Engagement Rate):**
+**Content Type Performance:**
+${context.contentTypeStats
+  .map(
+    (c) =>
+      `- ${c.contentType}: ${c.postCount} posts, avg ER ${fmt(c.avgEngagementRate)}, avg views ${Math.round(c.avgViews).toLocaleString()}`
+  )
+  .join("\n")}
+
+**Hook Type Rankings (best to worst):**
+${context.hookTypeRankings
+  .map(
+    (h, i) =>
+      `${i + 1}. ${h.hookType}: avg ER ${fmt(h.avgEngagementRate)} (${h.postCount} posts)`
+  )
+  .join("\n")}
+
+**Top Hashtags by Engagement Rate:**
+${context.topHashtags.length > 0
+  ? context.topHashtags
+      .map(
+        (h) =>
+          `- ${h.hashtag}: avg ER ${fmt(h.avgEngagementRate)}, ${h.postCount} posts, ${Math.round(h.totalViews).toLocaleString()} total views`
+      )
+      .join("\n")
+  : "No hashtag data available."}
+
+**Best Posting Days (UTC):**
+${context.bestPostingDays.length > 0
+  ? context.bestPostingDays.map((d) => `- ${d.label}: avg ER ${fmt(d.avgEngagementRate)}`).join("\n")
+  : "Insufficient data."}
+
+**Best Posting Hours (UTC):**
+${context.bestPostingHours.length > 0
+  ? context.bestPostingHours.map((h) => `- ${h.label}: avg ER ${fmt(h.avgEngagementRate)}`).join("\n")
+  : "Insufficient data."}
+
+**Top 10 Posts (by Engagement Rate):**
 ${context.topPosts
   .map(
     (p, i) =>
-      `${i + 1}. [${p.platform}/${p.contentType}] Hook: "${p.hookText}" | ER: ${(p.engagementRate * 100).toFixed(2)}% | Views: ${p.views.toLocaleString()} | Hook type: ${p.hookType} | Published: ${p.publishedAt.split("T")[0]}`
+      `${i + 1}. [${p.platform}/${p.contentType}] Hook: "${p.hookText}" | ER: ${fmt(p.engagementRate)} | Views: ${p.views.toLocaleString()} | Hook type: ${p.hookType} | Published: ${p.publishedAt.split("T")[0]}`
   )
   .join("\n")}
 
-**Bottom 5 Posts (by Engagement Rate):**
+**Bottom 10 Posts (by Engagement Rate):**
 ${context.bottomPosts
   .map(
     (p, i) =>
-      `${i + 1}. [${p.platform}/${p.contentType}] Hook: "${p.hookText}" | ER: ${(p.engagementRate * 100).toFixed(2)}% | Views: ${p.views.toLocaleString()} | Hook type: ${p.hookType} | Published: ${p.publishedAt.split("T")[0]}`
+      `${i + 1}. [${p.platform}/${p.contentType}] Hook: "${p.hookText}" | ER: ${fmt(p.engagementRate)} | Views: ${p.views.toLocaleString()} | Hook type: ${p.hookType} | Published: ${p.publishedAt.split("T")[0]}`
   )
   .join("\n")}
 
@@ -91,8 +143,8 @@ Write the strategy briefing now.`;
     const client = new Anthropic({ apiKey });
 
     const stream = await client.messages.stream({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 2000,
+      model: "claude-sonnet-4-6",
+      max_tokens: 3500,
       system: systemPrompt,
       messages: [{ role: "user", content: userPrompt }],
     });
