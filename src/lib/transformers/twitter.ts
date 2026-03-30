@@ -105,7 +105,7 @@ export function transformTwitter(
     const hookType = classifyHook(caption);
     const hookScore = scoreHook(engagementRate, avgEngagementRate);
 
-    const platformPostId = raw.id_str ?? String(raw.tweetId ?? raw.id ?? "") || generateId();
+    const platformPostId = raw.id_str ?? (String(raw.tweetId ?? raw.id ?? "") || generateId());
     const authorHandle =
       raw.author?.userName ?? raw.author?.username ?? raw.user?.screen_name ?? "";
     const permalink =
