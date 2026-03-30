@@ -7,10 +7,10 @@ import { PLATFORM_CONFIG, PLATFORMS } from "@/lib/constants";
 import { PlatformIcon } from "@/components/platforms/platform-icon";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatNumber, formatPercentage } from "@/lib/utils";
-import type { Platform, SocialPost, SocialAccount } from "@/types/social";
-import { ArrowRight, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { formatNumber, formatPercentage } from "@/lib/utils";
+import type { Platform, SocialAccount, KpiData } from "@/types/social";
+import { ArrowRight, Loader2, RefreshCw } from "lucide-react";
 
 function buildFilterParams(filters: ReturnType<typeof useFilters>["filters"]): string {
   const params = new URLSearchParams();
@@ -29,30 +29,10 @@ function buildFilterParams(filters: ReturnType<typeof useFilters>["filters"]): s
   return params.toString();
 }
 
-function computePlatformStats(posts: SocialPost[], platform: Platform) {
-  const filtered = posts.filter((p) => p.platform === platform);
-  const totalEngagement = filtered.reduce(
-    (s, p) => s + p.likes + p.comments + p.shares + p.saves,
-    0
-  );
-  const postsWithRate = filtered.filter((p) => p.engagementRate > 0);
-  const avgRate =
-    postsWithRate.length > 0
-      ? postsWithRate.reduce((s, p) => s + p.engagementRate, 0) / postsWithRate.length
-      : 0;
-  const totalViews = filtered.reduce((s, p) => s + p.views, 0);
-  return {
-    posts: filtered.length,
-    totalEngagement,
-    avgEngagementRate: avgRate,
-    totalViews,
-  };
-}
-
 export default function PlatformsPage() {
   const { filters, refreshKey } = useFilters();
 
-  const [allPosts, setAllPosts] = useState<SocialPost[]>([]);
+  const [overviewData, setOverviewData] = useState<KpiData | null>(null);
   const [accounts, setAccounts] = useState<SocialAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
@@ -61,13 +41,13 @@ export default function PlatformsPage() {
     setLoading(true);
     try {
       const filterParams = buildFilterParams(filters);
-      const [postsRes, accountsRes] = await Promise.all([
-        fetch(`/api/posts?${filterParams}`),
+      const [overviewRes, accountsRes] = await Promise.all([
+        fetch(`/api/analytics/overview?${filterParams}`),
         fetch("/api/accounts"),
       ]);
-      const postsData = await postsRes.json();
+      const overview = await overviewRes.json();
       const accountsData = await accountsRes.json();
-      setAllPosts(postsData.posts ?? []);
+      setOverviewData(overview);
       setAccounts(accountsData.accounts ?? []);
       setLastRefreshed(new Date());
     } catch (err) {
@@ -81,16 +61,27 @@ export default function PlatformsPage() {
     fetchData();
   }, [fetchData]);
 
-  const platformData = useMemo(
-    () =>
-      PLATFORMS.map((platform) => ({
-        platform,
-        config: PLATFORM_CONFIG[platform],
-        stats: computePlatformStats(allPosts, platform),
-        accountCount: accounts.filter((a) => a.platform === platform).length,
-      })).filter((d) => d.stats.posts > 0),
-    [allPosts, accounts]
-  );
+  // Build per-platform data from the overview's platformBreakdown (full DB counts, no limit)
+  const platformData = useMemo(() => {
+    if (!overviewData) return [];
+    return PLATFORMS
+      .map((platform) => {
+        const breakdown = overviewData.platformBreakdown.find((pb) => pb.platform === platform);
+        if (!breakdown || breakdown.posts === 0) return null;
+        return {
+          platform,
+          config: PLATFORM_CONFIG[platform],
+          stats: {
+            posts: breakdown.posts,
+            totalEngagement: breakdown.engagement,
+            avgEngagementRate: breakdown.avgEngagementRate,
+            totalViews: breakdown.views,
+          },
+          accountCount: accounts.filter((a) => a.platform === platform).length,
+        };
+      })
+      .filter((d): d is NonNullable<typeof d> => d !== null);
+  }, [overviewData, accounts]);
 
   if (loading) {
     return (
@@ -129,11 +120,7 @@ export default function PlatformsPage() {
           {/* Platform Cards Grid */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {platformData.map(({ platform, config, stats, accountCount }) => (
-              <Link
-                key={platform}
-                href={`/platforms/${platform}`}
-                className="group"
-              >
+              <Link key={platform} href={`/platforms/${platform}`} className="group">
                 <Card className="transition-shadow hover:shadow-md">
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
                     <div className="flex items-center gap-3">
@@ -183,59 +170,34 @@ export default function PlatformsPage() {
           {/* Comparison Table */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm font-medium">
-                Platform Comparison
-              </CardTitle>
+              <CardTitle className="text-sm font-medium">Platform Comparison</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-zinc-200 dark:border-zinc-700">
-                      <th className="pb-3 text-left font-medium text-zinc-500 dark:text-zinc-400">
-                        Platform
-                      </th>
-                      <th className="pb-3 text-right font-medium text-zinc-500 dark:text-zinc-400">
-                        Posts
-                      </th>
-                      <th className="pb-3 text-right font-medium text-zinc-500 dark:text-zinc-400">
-                        Total Views
-                      </th>
-                      <th className="pb-3 text-right font-medium text-zinc-500 dark:text-zinc-400">
-                        Total Engagement
-                      </th>
-                      <th className="pb-3 text-right font-medium text-zinc-500 dark:text-zinc-400">
-                        Avg Engagement Rate
-                      </th>
+                      <th className="pb-3 text-left font-medium text-zinc-500 dark:text-zinc-400">Platform</th>
+                      <th className="pb-3 text-right font-medium text-zinc-500 dark:text-zinc-400">Posts</th>
+                      <th className="pb-3 text-right font-medium text-zinc-500 dark:text-zinc-400">Total Views</th>
+                      <th className="pb-3 text-right font-medium text-zinc-500 dark:text-zinc-400">Total Engagement</th>
+                      <th className="pb-3 text-right font-medium text-zinc-500 dark:text-zinc-400">Avg Engagement Rate</th>
                     </tr>
                   </thead>
                   <tbody>
                     {platformData.map(({ platform, config, stats }) => (
-                      <tr
-                        key={platform}
-                        className="border-b border-zinc-100 last:border-0 dark:border-zinc-800"
-                      >
+                      <tr key={platform} className="border-b border-zinc-100 last:border-0 dark:border-zinc-800">
                         <td className="py-3">
                           <div className="flex items-center gap-2">
                             <PlatformIcon platform={platform} size="sm" />
                             <span className="font-medium">{config.label}</span>
                           </div>
                         </td>
+                        <td className="py-3 text-right">{formatNumber(stats.posts)}</td>
+                        <td className="py-3 text-right">{formatNumber(stats.totalViews)}</td>
+                        <td className="py-3 text-right">{formatNumber(stats.totalEngagement)}</td>
                         <td className="py-3 text-right">
-                          {formatNumber(stats.posts)}
-                        </td>
-                        <td className="py-3 text-right">
-                          {formatNumber(stats.totalViews)}
-                        </td>
-                        <td className="py-3 text-right">
-                          {formatNumber(stats.totalEngagement)}
-                        </td>
-                        <td className="py-3 text-right">
-                          <Badge
-                            variant={
-                              stats.avgEngagementRate > 5 ? "success" : "secondary"
-                            }
-                          >
+                          <Badge variant={stats.avgEngagementRate > 5 ? "success" : "secondary"}>
                             {formatPercentage(stats.avgEngagementRate)}
                           </Badge>
                         </td>

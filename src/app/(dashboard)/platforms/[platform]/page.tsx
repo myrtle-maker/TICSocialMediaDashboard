@@ -40,7 +40,7 @@ export default function SinglePlatformPage() {
     try {
       const filterParams = buildFilterParams(filters);
       const res = await fetch(
-        `/api/posts?platforms=${platform}&sortBy=publishedAt&sortOrder=desc&${filterParams}`
+        `/api/posts?platforms=${platform}&sortBy=publishedAt&sortOrder=desc&limit=2000&${filterParams}`
       );
       const data = await res.json();
       setPosts(data.posts ?? []);
