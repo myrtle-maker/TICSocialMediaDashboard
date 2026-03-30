@@ -9,7 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatNumber, formatPercentage } from "@/lib/utils";
 import type { Platform, SocialPost, SocialAccount } from "@/types/social";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight, Loader2, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 function buildFilterParams(filters: ReturnType<typeof useFilters>["filters"]): string {
   const params = new URLSearchParams();
@@ -54,6 +55,7 @@ export default function PlatformsPage() {
   const [allPosts, setAllPosts] = useState<SocialPost[]>([]);
   const [accounts, setAccounts] = useState<SocialAccount[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -67,6 +69,7 @@ export default function PlatformsPage() {
       const accountsData = await accountsRes.json();
       setAllPosts(postsData.posts ?? []);
       setAccounts(accountsData.accounts ?? []);
+      setLastRefreshed(new Date());
     } catch (err) {
       console.error("Failed to fetch platforms data:", err);
     } finally {
@@ -99,11 +102,24 @@ export default function PlatformsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Platforms</h2>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Compare performance across all your social media platforms.
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Platforms</h2>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            Compare performance across all your social media platforms.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          {lastRefreshed && (
+            <span className="text-xs text-zinc-400 dark:text-zinc-500">
+              Updated {lastRefreshed.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            </span>
+          )}
+          <Button variant="outline" size="sm" onClick={fetchData} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {platformData.length === 0 ? (
