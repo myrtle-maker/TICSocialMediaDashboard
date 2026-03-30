@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { avg, pctDiff, groupBy } from "@/lib/analytics/insights-helpers";
 
+export const dynamic = "force-dynamic";
+
 /** Ideal posts per week per platform (used for consistency scoring). */
 const IDEAL_POSTS_PER_WEEK: Record<string, number> = {
   tiktok: 5,
