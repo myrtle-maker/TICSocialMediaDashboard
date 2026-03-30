@@ -34,6 +34,8 @@ function cleanHandle(raw: string): string {
   return handle;
 }
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const accounts = await prisma.account.findMany({

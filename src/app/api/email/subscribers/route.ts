@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const subscribers = await prisma.emailSubscriber.findMany({
