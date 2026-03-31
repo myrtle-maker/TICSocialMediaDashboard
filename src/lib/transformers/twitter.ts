@@ -14,6 +14,10 @@ interface TwitterRawPost {
   id?: string | number;
   id_str?: string;
   tweetId?: string | number;
+  // Retweet detection
+  isRetweet?: boolean;
+  retweetedStatus?: unknown;
+  retweeted_status?: unknown;
   // Text
   full_text?: string;
   text?: string;
@@ -76,6 +80,15 @@ function resolveContentType(raw: TwitterRawPost): ContentType {
   return "text";
 }
 
+function isRetweet(raw: TwitterRawPost): boolean {
+  if (raw.isRetweet === true) return true;
+  if (raw.retweetedStatus != null) return true;
+  if (raw.retweeted_status != null) return true;
+  const text = raw.full_text ?? raw.fullText ?? raw.text ?? "";
+  if (text.startsWith("RT @")) return true;
+  return false;
+}
+
 export function transformTwitter(
   rawPosts: TwitterRawPost[],
   accountId: string,
@@ -83,7 +96,7 @@ export function transformTwitter(
 ): SocialPost[] {
   const now = new Date();
 
-  return rawPosts.map((raw) => {
+  return rawPosts.filter((raw) => !isRetweet(raw)).map((raw) => {
     const caption = raw.full_text ?? raw.fullText ?? raw.text ?? "";
     const likes = raw.likeCount ?? raw.like_count ?? raw.favorite_count ?? 0;
     const comments = raw.replyCount ?? raw.reply_count ?? 0;

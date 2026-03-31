@@ -53,6 +53,7 @@ export const ACTOR_CONFIGS: Record<Platform, ActorConfig> = {
       startUrls: [{ url: `https://twitter.com/${handle}` }],
       tweetsDesired: maxPosts,
       includeReplies: false,
+      includeRetweets: false,
       proxyConfig: { useApifyProxy: true },
     }),
   },
