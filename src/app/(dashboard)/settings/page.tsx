@@ -17,6 +17,8 @@ import {
   Mail,
   X,
   Plus,
+  Target,
+  Bell,
 } from "lucide-react";
 import { useFilters } from "@/components/filters/filter-context";
 
@@ -44,6 +46,21 @@ export default function SettingsPage() {
   const [sendingDigest, setSendingDigest] = useState(false);
   const [digestResult, setDigestResult] = useState<string | null>(null);
 
+  // KPI targets state
+  const [kpiTargets, setKpiTargets] = useState<
+    { id: string; metric: string; period: string; platform: string | null; target: number }[]
+  >([]);
+  const [kpiMetric, setKpiMetric] = useState("engagementRate");
+  const [kpiPeriod, setKpiPeriod] = useState("monthly");
+  const [kpiPlatform, setKpiPlatform] = useState("");
+  const [kpiTarget, setKpiTarget] = useState("");
+  const [kpiSaving, setKpiSaving] = useState(false);
+  const [kpiError, setKpiError] = useState("");
+
+  // Performance alerts state
+  const [sendingAlerts, setSendingAlerts] = useState(false);
+  const [alertsResult, setAlertsResult] = useState<string | null>(null);
+
   const [scraping, setScraping] = useState(false);
   const [scrapeResult, setScrapeResult] = useState<{
     success: boolean;
@@ -68,6 +85,12 @@ export default function SettingsPage() {
         if (s.scrapeFrequency) setScrapeFrequency(s.scrapeFrequency);
         if (s.postsPerScrape) setPostsPerScrape(s.postsPerScrape);
       })
+      .catch(() => {});
+
+    // Load KPI targets
+    fetch("/api/kpi-targets")
+      .then((r) => r.json())
+      .then((data) => setKpiTargets(data.targets ?? []))
       .catch(() => {});
 
     // Load email subscribers
@@ -197,6 +220,101 @@ export default function SettingsPage() {
       setScrapeResult({ success: false, error: err instanceof Error ? err.message : "Scrape request failed" });
       setScraping(false);
     }
+  };
+
+  const loadKpiTargets = async () => {
+    const r = await fetch("/api/kpi-targets");
+    const data = await r.json();
+    setKpiTargets(data.targets ?? []);
+  };
+
+  const handleAddKpiTarget = async () => {
+    setKpiError("");
+    const targetNum = parseFloat(kpiTarget);
+    if (!kpiTarget || isNaN(targetNum) || targetNum <= 0) {
+      setKpiError("Enter a valid positive number for the target");
+      return;
+    }
+    setKpiSaving(true);
+    try {
+      const res = await fetch("/api/kpi-targets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          metric: kpiMetric,
+          period: kpiPeriod,
+          platform: kpiPlatform || null,
+          target: targetNum,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setKpiError(data.error ? JSON.stringify(data.error) : "Failed to save target");
+      } else {
+        setKpiTarget("");
+        await loadKpiTargets();
+      }
+    } catch {
+      setKpiError("Failed to save target");
+    } finally {
+      setKpiSaving(false);
+    }
+  };
+
+  const handleDeleteKpiTarget = async (id: string) => {
+    await fetch(`/api/kpi-targets?id=${id}`, { method: "DELETE" }).catch(() => {});
+    await loadKpiTargets();
+  };
+
+  const handleSendAlertsNow = async () => {
+    setSendingAlerts(true);
+    setAlertsResult(null);
+    try {
+      const res = await fetch("/api/email/alerts", { method: "POST" });
+      const data = await res.json();
+      if (data.sent > 0) {
+        setAlertsResult(`Alerts sent to ${data.sent} subscriber${data.sent !== 1 ? "s" : ""} (${data.checked} posts checked)`);
+      } else if (data.errors?.length > 0) {
+        setAlertsResult(`Failed: ${data.errors[0]}`);
+      } else {
+        setAlertsResult(`No alerts triggered (${data.checked} posts checked, none over/underperforming)`);
+      }
+    } catch {
+      setAlertsResult("Failed to run alerts check");
+    } finally {
+      setSendingAlerts(false);
+      setTimeout(() => setAlertsResult(null), 6000);
+    }
+  };
+
+  const KPI_METRICS = [
+    { value: "engagementRate", label: "Avg Engagement Rate" },
+    { value: "views", label: "Total Views" },
+    { value: "likes", label: "Total Likes" },
+    { value: "comments", label: "Total Comments" },
+    { value: "shares", label: "Total Shares" },
+    { value: "saves", label: "Total Saves" },
+    { value: "posts", label: "Total Posts" },
+  ];
+
+  const KPI_PLATFORMS = [
+    { value: "", label: "All Platforms" },
+    { value: "tiktok", label: "TikTok" },
+    { value: "instagram", label: "Instagram" },
+    { value: "youtube", label: "YouTube" },
+    { value: "twitter", label: "X / Twitter" },
+    { value: "facebook", label: "Facebook" },
+    { value: "linkedin", label: "LinkedIn" },
+  ];
+
+  const KPI_METRIC_LABELS: Record<string, string> = {
+    engagementRate: "Avg ER",
+    views: "Views",
+    likes: "Likes",
+    comments: "Comments",
+    shares: "Shares",
+    saves: "Saves",
+    posts: "Posts",
   };
 
   const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -707,6 +825,146 @@ export default function SettingsPage() {
               </p>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* KPI Targets */}
+      <Card id="kpi-targets">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+            <Target className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
+            KPI Targets
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            Set monthly or weekly targets for key metrics. Progress is shown on the Overview dashboard.
+          </p>
+
+          {/* Existing targets */}
+          {kpiTargets.length > 0 && (
+            <div className="space-y-2">
+              {kpiTargets.map((t) => (
+                <div
+                  key={t.id}
+                  className="flex items-center justify-between rounded-lg border border-zinc-200 p-2.5 dark:border-zinc-700"
+                >
+                  <div className="flex items-center gap-2">
+                    <Target className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-500" />
+                    <span className="text-sm text-zinc-900 dark:text-zinc-100">
+                      {KPI_METRIC_LABELS[t.metric] ?? t.metric}
+                    </span>
+                    <Badge variant="secondary" className="text-[10px] capitalize">{t.period}</Badge>
+                    {t.platform && (
+                      <Badge variant="outline" className="text-[10px] capitalize">{t.platform}</Badge>
+                    )}
+                    <span className="text-xs text-zinc-500 dark:text-zinc-400">→ {t.target.toLocaleString()}</span>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteKpiTarget(t.id)}
+                    className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Add target form */}
+          <div>
+            <p className="mb-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-300">Add Target</p>
+            <div className="flex flex-wrap gap-2">
+              <select
+                value={kpiMetric}
+                onChange={(e) => setKpiMetric(e.target.value)}
+                className="rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
+              >
+                {KPI_METRICS.map((m) => (
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
+              </select>
+              <select
+                value={kpiPeriod}
+                onChange={(e) => setKpiPeriod(e.target.value)}
+                className="rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
+              >
+                <option value="monthly">Monthly</option>
+                <option value="weekly">Weekly</option>
+              </select>
+              <select
+                value={kpiPlatform}
+                onChange={(e) => setKpiPlatform(e.target.value)}
+                className="rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
+              >
+                {KPI_PLATFORMS.map((p) => (
+                  <option key={p.value} value={p.value}>{p.label}</option>
+                ))}
+              </select>
+              <input
+                type="number"
+                min="0"
+                placeholder="Target value"
+                value={kpiTarget}
+                onChange={(e) => { setKpiTarget(e.target.value); setKpiError(""); }}
+                className="w-36 rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
+              />
+              <Button variant="outline" onClick={handleAddKpiTarget} disabled={kpiSaving}>
+                {kpiSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                <span>Add</span>
+              </Button>
+            </div>
+            {kpiError && (
+              <p className="mt-1 flex items-center text-xs text-red-600 dark:text-red-400">
+                <AlertTriangle className="mr-1 h-3 w-3" />
+                {kpiError}
+              </p>
+            )}
+            <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
+              For Avg Engagement Rate, enter as a decimal (e.g. 0.05 = 5%). For counts, enter the whole number.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Performance Alerts */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+            <Bell className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
+            Performance Alerts
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div>
+            <p className="text-sm text-zinc-700 dark:text-zinc-300">
+              Automatic email alerts for exceptional posts
+            </p>
+            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+              Checks run daily at 9:30 AM UTC. Posts published in the last 48 hours that are{" "}
+              <strong>2&times; above</strong> or <strong>0.5&times; below</strong> the account average
+              engagement rate trigger an alert to all subscribers.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={handleSendAlertsNow}
+              disabled={sendingAlerts || subscribers.length === 0}
+            >
+              {sendingAlerts ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bell className="h-4 w-4" />}
+              <span>{sendingAlerts ? "Checking..." : "Run Alert Check Now"}</span>
+            </Button>
+            {alertsResult && (
+              <p className="text-xs text-zinc-600 dark:text-zinc-400">{alertsResult}</p>
+            )}
+          </div>
+          {subscribers.length === 0 && (
+            <p className="flex items-center text-xs text-amber-600 dark:text-amber-400">
+              <AlertTriangle className="mr-1 h-3 w-3" />
+              Add email subscribers above to receive alerts.
+            </p>
+          )}
         </CardContent>
       </Card>
 

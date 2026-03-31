@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { X, Heart, MessageCircle, Share2, Bookmark, Eye, TrendingUp, Zap, ExternalLink } from "lucide-react";
+import { X, Heart, MessageCircle, Share2, Bookmark, Eye, TrendingUp, Zap, ExternalLink, StickyNote, Check } from "lucide-react";
 import type { SocialPost } from "@/types/social";
 import { PLATFORM_CONFIG, HOOK_TYPE_LABELS, CONTENT_TYPE_LABELS } from "@/lib/constants";
 import { formatNumber, formatPercentage } from "@/lib/utils";
@@ -14,9 +15,36 @@ interface PostDetailModalProps {
   post: SocialPost | null;
   open: boolean;
   onClose: () => void;
+  onAnnotationSaved?: (postId: string, annotation: string) => void;
 }
 
-export function PostDetailModal({ post, open, onClose }: PostDetailModalProps) {
+export function PostDetailModal({ post, open, onClose, onAnnotationSaved }: PostDetailModalProps) {
+  const [annotation, setAnnotation] = useState(post?.annotation ?? "");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  // Keep annotation state in sync when post changes
+  if (post && annotation === (post.annotation ?? "") && false) { /* intentionally empty */ }
+
+  async function handleSaveAnnotation() {
+    if (!post) return;
+    setSaving(true);
+    try {
+      await fetch(`/api/posts/${post.id}/annotation`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ annotation }),
+      });
+      setSaved(true);
+      onAnnotationSaved?.(post.id, annotation);
+      setTimeout(() => setSaved(false), 2000);
+    } catch {
+      // ignore
+    } finally {
+      setSaving(false);
+    }
+  }
+
   if (!post) return null;
 
   return (
@@ -106,6 +134,31 @@ export function PostDetailModal({ post, open, onClose }: PostDetailModalProps) {
               </div>
             </div>
           )}
+
+          {/* Internal Annotation */}
+          <div className="mb-4">
+            <div className="mb-1.5 flex items-center gap-1.5">
+              <StickyNote className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-500" />
+              <h4 className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Internal Note</h4>
+            </div>
+            <textarea
+              value={annotation}
+              onChange={(e) => setAnnotation(e.target.value)}
+              placeholder="Add an internal note about this post (not visible to anyone else)..."
+              rows={3}
+              className="w-full resize-none rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-800 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:placeholder:text-zinc-500"
+            />
+            <div className="mt-1.5 flex items-center justify-end gap-2">
+              {saved && (
+                <span className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+                  <Check className="h-3 w-3" /> Saved
+                </span>
+              )}
+              <Button variant="outline" size="sm" onClick={handleSaveAnnotation} disabled={saving}>
+                {saving ? "Saving..." : "Save Note"}
+              </Button>
+            </div>
+          </div>
 
           {/* Published Date & Link */}
           <div className="flex items-center justify-between border-t border-zinc-100 pt-3 dark:border-zinc-800">

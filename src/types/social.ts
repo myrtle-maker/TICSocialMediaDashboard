@@ -53,6 +53,9 @@ export interface SocialPost {
   // Platform-Specific overflow
   platformMeta: Record<string, unknown>;
 
+  // Internal annotation (only present when loaded from DB, not from transformers)
+  annotation?: string | null;
+
   // Timestamps
   publishedAt: Date;
   scrapedAt: Date;

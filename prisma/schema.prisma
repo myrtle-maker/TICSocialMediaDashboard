@@ -62,10 +62,13 @@ model Post {
 
   platformMeta    Json     @default("{}")
 
+  annotation      String?  @default("")
+
   publishedAt     DateTime
   scrapedAt       DateTime @default(now())
 
   account         Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  alerts          PerformanceAlert[]
 
   @@unique([platform, platformPostId])
   @@index([platform])
@@ -142,6 +145,32 @@ model CompetitorPost {
   @@index([competitorId])
   @@index([platform])
   @@map("competitor_posts")
+}
+
+model PerformanceAlert {
+  id          String   @id @default(cuid())
+  postId      String
+  alertType   String   // "overperforming" | "underperforming"
+  sentAt      DateTime @default(now())
+
+  post        Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, alertType])
+  @@index([sentAt])
+  @@map("performance_alerts")
+}
+
+model KpiTarget {
+  id        String   @id @default(cuid())
+  metric    String   // "engagementRate" | "views" | "likes" | "comments" | "shares" | "saves" | "posts"
+  period    String   // "monthly" | "weekly"
+  platform  String?  // null = all platforms
+  target    Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([metric, period, platform])
+  @@map("kpi_targets")
 }
 
 model EmailSubscriber {
