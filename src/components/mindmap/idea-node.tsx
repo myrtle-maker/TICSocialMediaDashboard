@@ -26,7 +26,7 @@ function IdeaNodeComponent({ data }: { data: IdeaNodeData }) {
 
   return (
     <div
-      className="rounded-xl border bg-white shadow-md dark:bg-zinc-900 dark:border-zinc-700"
+      className="rounded-xl border border-zinc-200 bg-white shadow-md dark:border-zinc-700 dark:bg-zinc-800"
       style={{
         width: 220,
         borderLeftColor: data.pillarColor,
@@ -47,17 +47,17 @@ function IdeaNodeComponent({ data }: { data: IdeaNodeData }) {
         {/* Badges */}
         <div className="flex flex-wrap gap-1 mb-2">
           {data.platform && (
-            <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+            <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-zinc-100 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-200">
               {PLATFORM_CONFIG[data.platform as Platform]?.label ?? data.platform}
             </span>
           )}
           {data.contentType && (
-            <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+            <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-zinc-100 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-200">
               {CONTENT_TYPE_LABELS[data.contentType as ContentType] ?? data.contentType}
             </span>
           )}
           {data.hookType && (
-            <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+            <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-amber-50 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200">
               {HOOK_TYPE_LABELS[data.hookType as HookType] ?? data.hookType}
             </span>
           )}
@@ -71,7 +71,7 @@ function IdeaNodeComponent({ data }: { data: IdeaNodeData }) {
         )}
 
         {/* Actions */}
-        <div className="flex items-center justify-end gap-1 border-t border-zinc-100 dark:border-zinc-800 pt-1.5 mt-1">
+        <div className="flex items-center justify-end gap-1 border-t border-zinc-100 dark:border-zinc-700 pt-1.5 mt-1">
           {!isPromoted && (
             <button
               onClick={(e) => { e.stopPropagation(); data.onPromote(data.id); }}

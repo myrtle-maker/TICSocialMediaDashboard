@@ -20,7 +20,7 @@ export interface PostLeafNodeData {
 function PostLeafNodeComponent({ data }: { data: PostLeafNodeData }) {
   return (
     <div
-      className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white shadow-sm cursor-pointer hover:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-zinc-500 transition-colors"
+      className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white shadow-sm cursor-pointer hover:border-zinc-400 dark:border-zinc-600 dark:bg-zinc-800 dark:hover:border-zinc-400 transition-colors"
       style={{ width: 200 }}
       onClick={(e) => { e.stopPropagation(); data.onOpen(data.id); }}
       title="Click to view post"
@@ -43,15 +43,15 @@ function PostLeafNodeComponent({ data }: { data: PostLeafNodeData }) {
       )}
 
       <div className="min-w-0 flex-1 py-1.5 pr-2">
-        <p className="text-[11px] font-medium text-zinc-800 dark:text-zinc-200 line-clamp-1 leading-tight">
+        <p className="text-[11px] font-medium text-zinc-800 dark:text-zinc-100 line-clamp-1 leading-tight">
           {data.caption.length > 60 ? data.caption.slice(0, 60) + "…" : data.caption}
         </p>
         <div className="flex items-center gap-1.5 mt-0.5">
-          <span className="text-[10px] text-zinc-400 dark:text-zinc-500">
+          <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
             {formatPercentage(data.engagementRate)} ER
           </span>
-          <span className="text-[10px] text-zinc-300 dark:text-zinc-600">·</span>
-          <span className="text-[10px] text-zinc-400 dark:text-zinc-500">
+          <span className="text-[10px] text-zinc-300 dark:text-zinc-500">·</span>
+          <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
             {formatNumber(data.views)} views
           </span>
         </div>

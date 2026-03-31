@@ -16,6 +16,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import dagre from "@dagrejs/dagre";
+import { useIsDark } from "@/lib/hooks/use-is-dark";
 
 import { PillarNode, type PillarNodeData } from "./pillar-node";
 import { IdeaNode, type IdeaNodeData } from "./idea-node";
@@ -229,6 +230,8 @@ const nodeTypes = {
 };
 
 function InnerCanvas({ pillars, onRefresh }: MindmapCanvasProps) {
+  const isDark = useIsDark();
+
   // Modal state
   const [pillarModalOpen, setPillarModalOpen] = useState(false);
   const [ideaModalOpen, setIdeaModalOpen] = useState(false);
@@ -314,15 +317,31 @@ function InnerCanvas({ pillars, onRefresh }: MindmapCanvasProps) {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         nodeTypes={nodeTypes}
+        colorMode={isDark ? "dark" : "light"}
         fitView
         fitViewOptions={{ padding: 0.2 }}
         minZoom={0.2}
         maxZoom={2}
         proOptions={{ hideAttribution: true }}
       >
-        <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#d4d4d8" />
+        <Background
+          variant={BackgroundVariant.Dots}
+          gap={20}
+          size={1}
+          color={isDark ? "#3f3f46" : "#d4d4d8"}
+          style={{ backgroundColor: isDark ? "#18181b" : "#fafafa" }}
+        />
         <Controls />
-        <MiniMap nodeStrokeWidth={3} zoomable pannable />
+        <MiniMap
+          nodeStrokeWidth={3}
+          zoomable
+          pannable
+          style={{
+            backgroundColor: isDark ? "#27272a" : "#ffffff",
+            border: `1px solid ${isDark ? "#3f3f46" : "#e4e4e7"}`,
+          }}
+          maskColor={isDark ? "rgba(0,0,0,0.6)" : "rgba(240,240,245,0.6)"}
+        />
       </ReactFlow>
 
       <PillarFormModal
