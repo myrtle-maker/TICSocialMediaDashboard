@@ -427,7 +427,7 @@ function renderInline(text: string): React.ReactNode {
 // ---------------------------------------------------------------------------
 
 const FOCUS_OPTIONS = [
-  { value: "", label: "General strategy (no specific focus)" },
+  { value: "none", label: "General strategy (no specific focus)" },
   { value: "Grow follower count across all platforms", label: "Grow followers" },
   { value: "Maximise engagement rate on every post", label: "Boost engagement" },
   { value: "Increase video views and reach", label: "Increase views & reach" },
@@ -447,7 +447,7 @@ function StrategyBriefing() {
   const [briefing, setBriefing] = useState<string>("");
   const [timestamp, setTimestamp] = useState<number | null>(null);
   const [cachedFocus, setCachedFocus] = useState<string | null>(null);
-  const [focus, setFocus] = useState<string>("");
+  const [focus, setFocus] = useState<string>("none");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const textRef = useRef<HTMLDivElement>(null);
@@ -467,7 +467,7 @@ function StrategyBriefing() {
     setError(null);
     setBriefing("");
 
-    const activeFocus = focus || null;
+    const activeFocus = focus && focus !== "none" ? focus : null;
 
     try {
       const res = await fetch("/api/ai/briefing", {
