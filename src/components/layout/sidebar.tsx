@@ -14,6 +14,7 @@ import {
   Sparkles,
   Swords,
   CalendarDays,
+  CalendarClock,
   ChevronLeft,
   ChevronRight,
   LogOut,
@@ -35,6 +36,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   lightbulb: Lightbulb,
   sparkles: Sparkles,
   "calendar-days": CalendarDays,
+  "calendar-clock": CalendarClock,
 };
 
 const navItems = [
@@ -44,6 +46,7 @@ const navItems = [
   { href: "/platforms", label: "Platforms", icon: "grid-3x3" },
   { href: "/content", label: "Content", icon: "bar-chart-3" },
   { href: "/calendar", label: "Calendar", icon: "calendar-days" },
+  { href: "/schedule", label: "Schedule Planner", icon: "calendar-clock" },
   { href: "/hooks", label: "Hooks", icon: "zap" },
   { href: "/competitors", label: "Competitors", icon: "swords" },
   { href: "/audience", label: "Audience", icon: "users" },
