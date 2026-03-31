@@ -39,14 +39,18 @@ export async function POST(request: NextRequest) {
     });
     const maxPosts = parseInt(ppsSetting?.value ?? "50") || 50;
 
+    const { accountIds: accountIdList } = body as { accountIds?: string[] };
+
     let accounts;
     if (scrapeAll) {
       accounts = await prisma.account.findMany();
+    } else if (accountIdList && Array.isArray(accountIdList) && accountIdList.length > 0) {
+      accounts = await prisma.account.findMany({ where: { id: { in: accountIdList } } });
     } else if (accountId) {
       const account = await prisma.account.findUnique({ where: { id: accountId } });
       accounts = account ? [account] : [];
     } else {
-      return NextResponse.json({ error: "Provide accountId or scrapeAll: true" }, { status: 400 });
+      return NextResponse.json({ error: "Provide accountId, accountIds[], or scrapeAll: true" }, { status: 400 });
     }
 
     if (accounts.length === 0) {
