@@ -177,8 +177,83 @@ function hourFromScheduledAt(iso: string): number {
 }
 
 // ---------------------------------------------------------------------------
-// Suggestion generation (same logic as before, preserved for reference)
+// Suggestion generation — per-platform schedules that can overlap on the same day
 // ---------------------------------------------------------------------------
+
+function bestDowsForPosts(
+  posts: SocialPost[],
+  count: number,
+  isEvenSpread: boolean
+): number[] {
+  if (isEvenSpread) return EVEN_SPREADS[count] ?? [0, 2, 4];
+
+  const dayMap = new Map<number, { count: number; totalRate: number }>();
+  for (const post of posts.filter((p) => p.engagementRate > 0)) {
+    const dow = (new Date(post.publishedAt).getUTCDay() + 6) % 7;
+    const e = dayMap.get(dow) ?? { count: 0, totalRate: 0 };
+    e.count += 1; e.totalRate += post.engagementRate;
+    dayMap.set(dow, e);
+  }
+  const ranked = Array.from(dayMap.entries())
+    .map(([dow, d]) => ({ dow, avgRate: d.totalRate / d.count }))
+    .sort((a, b) => b.avgRate - a.avgRate)
+    .map((x) => x.dow);
+  const selected = ranked.slice(0, count);
+  // Fill up with any missing days if not enough data
+  for (const d of [0, 2, 4, 1, 3, 5, 6]) {
+    if (selected.length >= count) break;
+    if (!selected.includes(d)) selected.push(d);
+  }
+  return selected.slice(0, count).sort((a, b) => a - b);
+}
+
+function bestContentTypeForPosts(posts: SocialPost[], videoFirst: boolean): string[] {
+  const ctMap = new Map<string, { count: number; totalRate: number }>();
+  for (const post of posts) {
+    const e = ctMap.get(post.contentType) ?? { count: 0, totalRate: 0 };
+    e.count += 1; e.totalRate += post.engagementRate > 0 ? post.engagementRate : 0.01;
+    ctMap.set(post.contentType, e);
+  }
+  let types = Array.from(ctMap.entries())
+    .map(([ct, d]) => ({ ct, avgRate: d.totalRate / d.count }))
+    .sort((a, b) => b.avgRate - a.avgRate)
+    .map((x) => x.ct);
+  if (videoFirst) {
+    types = [
+      ...types.filter((ct) => VIDEO_CONTENT_TYPES.includes(ct)),
+      ...types.filter((ct) => !VIDEO_CONTENT_TYPES.includes(ct)),
+    ];
+  }
+  return types.length > 0 ? types : ["video"];
+}
+
+function bestHookForPosts(posts: SocialPost[]): string | null {
+  const hookMap = new Map<string, { count: number; totalRate: number }>();
+  for (const post of posts.filter((p) => p.engagementRate > 0)) {
+    if (!post.hookType || post.hookType === "other") continue;
+    const e = hookMap.get(post.hookType) ?? { count: 0, totalRate: 0 };
+    e.count += 1; e.totalRate += post.engagementRate;
+    hookMap.set(post.hookType, e);
+  }
+  return Array.from(hookMap.entries())
+    .map(([ht, d]) => ({ ht, avgRate: d.totalRate / d.count }))
+    .sort((a, b) => b.avgRate - a.avgRate)[0]?.ht ?? null;
+}
+
+function bestHourForPosts(posts: SocialPost[]): number {
+  const hourMap = new Map<number, { count: number; totalRate: number }>();
+  for (const post of posts.filter((p) => p.engagementRate > 0)) {
+    const hour = new Date(post.publishedAt).getUTCHours();
+    const e = hourMap.get(hour) ?? { count: 0, totalRate: 0 };
+    e.count += 1; e.totalRate += post.engagementRate;
+    hourMap.set(hour, e);
+  }
+  return (
+    Array.from(hourMap.entries())
+      .map(([h, d]) => ({ h, avgRate: d.totalRate / d.count }))
+      .sort((a, b) => b.avgRate - a.avgRate)[0]?.h ?? 12
+  );
+}
 
 function generateSuggestions(
   posts: SocialPost[],
@@ -187,108 +262,70 @@ function generateSuggestions(
   year: number,
   month: number
 ): Suggestion[] {
+  if (posts.length === 0) return [];
+
   const platformOverride = GOAL_PLATFORM_OVERRIDE[goal] ?? null;
   const videoFirst = GOAL_VIDEO_FIRST[goal] ?? false;
   const isEvenSpread = goal === "consistency";
 
-  const sourcePosts = platformOverride ? posts.filter((p) => p.platform === platformOverride) : posts;
-  const analysisPosts = sourcePosts.length >= 5 ? sourcePosts : posts;
-  const rated = analysisPosts.filter((p) => p.engagementRate > 0);
-
-  const dayMap = new Map<number, { count: number; totalRate: number }>();
-  for (const post of rated) {
-    const dow = (new Date(post.publishedAt).getUTCDay() + 6) % 7;
-    const e = dayMap.get(dow) ?? { count: 0, totalRate: 0 };
-    e.count += 1; e.totalRate += post.engagementRate;
-    dayMap.set(dow, e);
-  }
-  const rankedDays = Array.from(dayMap.entries())
-    .map(([dow, d]) => ({ dow, avgRate: d.totalRate / d.count }))
-    .sort((a, b) => b.avgRate - a.avgRate);
-
-  let selectedDows: number[];
-  if (isEvenSpread) {
-    selectedDows = EVEN_SPREADS[postsPerWeek] ?? [0, 2, 4];
+  // Determine which platforms to generate schedules for
+  let targetPlatforms: string[];
+  if (platformOverride) {
+    targetPlatforms = [platformOverride];
   } else {
-    selectedDows = rankedDays.slice(0, postsPerWeek).map((d) => d.dow).sort((a, b) => a - b);
-    if (selectedDows.length < postsPerWeek) {
-      for (const d of [0, 2, 4, 1, 3, 5, 6]) {
-        if (!selectedDows.includes(d)) selectedDows.push(d);
-        if (selectedDows.length >= postsPerWeek) break;
-      }
-      selectedDows.sort((a, b) => a - b);
+    // Rank platforms by avg engagement rate, require at least 2 posts
+    const platformMap = new Map<string, { count: number; totalRate: number }>();
+    for (const post of posts.filter((p) => p.engagementRate > 0)) {
+      const e = platformMap.get(post.platform) ?? { count: 0, totalRate: 0 };
+      e.count += 1; e.totalRate += post.engagementRate;
+      platformMap.set(post.platform, e);
     }
+    targetPlatforms = Array.from(platformMap.entries())
+      .filter(([, d]) => d.count >= 2)
+      .map(([pl, d]) => ({ pl, avgRate: d.totalRate / d.count }))
+      .sort((a, b) => b.avgRate - a.avgRate)
+      .slice(0, 3)
+      .map((x) => x.pl);
+    if (targetPlatforms.length === 0) targetPlatforms = ["instagram"];
   }
 
-  const ctMap = new Map<string, { count: number; totalRate: number }>();
-  for (const post of analysisPosts) {
-    const e = ctMap.get(post.contentType) ?? { count: 0, totalRate: 0 };
-    e.count += 1; e.totalRate += post.engagementRate > 0 ? post.engagementRate : 0.01;
-    ctMap.set(post.contentType, e);
-  }
-  let topContentTypes = Array.from(ctMap.entries())
-    .map(([ct, d]) => ({ ct, avgRate: d.totalRate / d.count }))
-    .sort((a, b) => b.avgRate - a.avgRate).map((x) => x.ct);
-  if (videoFirst) {
-    topContentTypes = [
-      ...topContentTypes.filter((ct) => VIDEO_CONTENT_TYPES.includes(ct)),
-      ...topContentTypes.filter((ct) => !VIDEO_CONTENT_TYPES.includes(ct)),
-    ];
-  }
-  if (topContentTypes.length === 0) topContentTypes = ["video"];
-
-  const platformMap = new Map<string, { count: number; totalRate: number }>();
-  for (const post of analysisPosts) {
-    const e = platformMap.get(post.platform) ?? { count: 0, totalRate: 0 };
-    e.count += 1; e.totalRate += post.engagementRate > 0 ? post.engagementRate : 0.01;
-    platformMap.set(post.platform, e);
-  }
-  const topPlatforms = Array.from(platformMap.entries())
-    .map(([pl, d]) => ({ pl, avgRate: d.totalRate / d.count }))
-    .sort((a, b) => b.avgRate - a.avgRate).map((x) => x.pl);
-  const platformPool = platformOverride ? [platformOverride]
-    : topPlatforms.slice(0, 3).length > 0 ? topPlatforms.slice(0, 3) : ["instagram"];
-
-  const hookMap = new Map<string, { count: number; totalRate: number }>();
-  for (const post of rated) {
-    if (!post.hookType || post.hookType === "other") continue;
-    const e = hookMap.get(post.hookType) ?? { count: 0, totalRate: 0 };
-    e.count += 1; e.totalRate += post.engagementRate;
-    hookMap.set(post.hookType, e);
-  }
-  const topHook = Array.from(hookMap.entries())
-    .map(([ht, d]) => ({ ht, avgRate: d.totalRate / d.count }))
-    .sort((a, b) => b.avgRate - a.avgRate)[0]?.ht ?? null;
-
-  const hourMap = new Map<number, { count: number; totalRate: number }>();
-  for (const post of rated) {
-    const hour = new Date(post.publishedAt).getUTCHours();
-    const e = hourMap.get(hour) ?? { count: 0, totalRate: 0 };
-    e.count += 1; e.totalRate += post.engagementRate;
-    hourMap.set(hour, e);
-  }
-  const bestHour = Array.from(hourMap.entries())
-    .map(([h, d]) => ({ h, avgRate: d.totalRate / d.count }))
-    .sort((a, b) => b.avgRate - a.avgRate)[0]?.h ?? 12;
-
+  const numPlatforms = targetPlatforms.length;
   const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-  const suggestions: Suggestion[] = [];
-  let idx = 0;
-  for (let d = 1; d <= daysInMonth; d++) {
-    const date = new Date(Date.UTC(year, month, d));
-    const dow = (date.getUTCDay() + 6) % 7;
-    if (selectedDows.includes(dow)) {
-      suggestions.push({
-        date: dateKey(date),
-        platform: platformPool[idx % platformPool.length],
-        contentType: topContentTypes[idx % topContentTypes.length],
-        hookType: topHook,
-        hour: bestHour,
-      });
-      idx++;
+  const allSuggestions: Suggestion[] = [];
+
+  for (let pi = 0; pi < numPlatforms; pi++) {
+    const platform = targetPlatforms[pi];
+    // Distribute total posts/week across platforms (round-robin the remainder to higher-ranked platforms)
+    const platformPostsPerWeek = Math.floor(postsPerWeek / numPlatforms) + (pi < postsPerWeek % numPlatforms ? 1 : 0);
+    if (platformPostsPerWeek === 0) continue;
+
+    // Use platform-specific posts for analysis; fall back to all posts if too few
+    const platformPosts = posts.filter((p) => p.platform === platform);
+    const analysisPosts = platformPosts.length >= 3 ? platformPosts : posts;
+
+    const selectedDows = bestDowsForPosts(analysisPosts, platformPostsPerWeek, isEvenSpread);
+    const topContentTypes = bestContentTypeForPosts(analysisPosts, videoFirst);
+    const topHook = bestHookForPosts(analysisPosts);
+    const bestHour = bestHourForPosts(analysisPosts);
+
+    let ctIdx = 0;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const date = new Date(Date.UTC(year, month, d));
+      const dow = (date.getUTCDay() + 6) % 7;
+      if (selectedDows.includes(dow)) {
+        allSuggestions.push({
+          date: dateKey(date),
+          platform,
+          contentType: topContentTypes[ctIdx % topContentTypes.length],
+          hookType: topHook,
+          hour: bestHour,
+        });
+        ctIdx++;
+      }
     }
   }
-  return suggestions;
+
+  return allSuggestions;
 }
 
 // ---------------------------------------------------------------------------
@@ -555,8 +592,12 @@ export default function SchedulePage() {
   );
 
   const suggestionsByDate = useMemo(() => {
-    const map = new Map<string, Suggestion>();
-    for (const s of suggestions) map.set(s.date, s);
+    const map = new Map<string, Suggestion[]>();
+    for (const s of suggestions) {
+      const existing = map.get(s.date) ?? [];
+      existing.push(s);
+      map.set(s.date, existing);
+    }
     return map;
   }, [suggestions]);
 
@@ -578,8 +619,8 @@ export default function SchedulePage() {
     () => (selectedDate ? scheduledByDate.get(selectedDate) ?? [] : []),
     [selectedDate, scheduledByDate]
   );
-  const selectedSuggestion = useMemo(
-    () => (selectedDate ? suggestionsByDate.get(selectedDate) ?? null : null),
+  const selectedSuggestions = useMemo(
+    () => (selectedDate ? suggestionsByDate.get(selectedDate) ?? [] : []),
     [selectedDate, suggestionsByDate]
   );
 
@@ -879,8 +920,8 @@ export default function SchedulePage() {
                 {week.map((date) => {
                   const key = dateKey(date);
                   const dayPosts = scheduledByDate.get(key) ?? [];
-                  const suggestion = suggestionsByDate.get(key);
-                  const hasSuggestion = !!suggestion && showSuggestions;
+                  const daySuggestions = suggestionsByDate.get(key) ?? [];
+                  const hasSuggestion = daySuggestions.length > 0 && showSuggestions;
                   const isCurrentMonth = date.getUTCMonth() === viewMonth;
                   const isToday = key === todayKey;
                   const isSelected = key === selectedDate;
@@ -961,18 +1002,19 @@ export default function SchedulePage() {
                         );
                       })}
 
-                      {/* AI suggestion ghost */}
-                      {hasSuggestion && !scheduledByDate.get(key)?.length && (
+                      {/* AI suggestion ghosts — one per platform */}
+                      {hasSuggestion && daySuggestions.map((s, si) => (
                         <div
+                          key={si}
                           className="flex w-full items-center gap-1 rounded border border-dashed border-purple-300 px-1.5 py-0.5 dark:border-purple-700"
                           title="AI suggestion — click day to add"
                         >
                           <Sparkles className="h-2.5 w-2.5 shrink-0 text-purple-400" />
                           <span className="truncate text-[10px] text-purple-500 dark:text-purple-400">
-                            {PLATFORM_CONFIG[suggestion!.platform as keyof typeof PLATFORM_CONFIG]?.label ?? suggestion!.platform}
+                            {PLATFORM_CONFIG[s.platform as keyof typeof PLATFORM_CONFIG]?.label ?? s.platform}
                           </span>
                         </div>
-                      )}
+                      ))}
                     </button>
                   );
                 })}
@@ -1156,30 +1198,37 @@ export default function SchedulePage() {
               </div>
             )}
 
-            {/* AI suggestion for this day */}
-            {selectedSuggestion && !showAddForm && !editingPost && (
-              <div className="flex items-center justify-between rounded-lg border border-dashed border-purple-300 bg-purple-50/50 px-4 py-3 dark:border-purple-800 dark:bg-purple-950/20">
-                <div className="flex items-center gap-3">
-                  <Sparkles className="h-4 w-4 shrink-0 text-purple-500" />
-                  <div>
-                    <p className="text-xs font-medium text-purple-700 dark:text-purple-300">
-                      AI suggests:{" "}
-                      {PLATFORM_CONFIG[selectedSuggestion.platform as keyof typeof PLATFORM_CONFIG]?.label ?? selectedSuggestion.platform}{" "}
-                      {CONTENT_TYPE_LABELS[selectedSuggestion.contentType as keyof typeof CONTENT_TYPE_LABELS] ?? selectedSuggestion.contentType}
-                      {selectedSuggestion.hookType &&
-                        ` · ${HOOK_TYPE_LABELS[selectedSuggestion.hookType as keyof typeof HOOK_TYPE_LABELS] ?? selectedSuggestion.hookType} hook`}
-                    </p>
-                    <p className="text-[11px] text-purple-500 dark:text-purple-400">
-                      Best time: {String(selectedSuggestion.hour).padStart(2, "0")}:00 UTC
-                    </p>
+            {/* AI suggestions for this day — one banner per platform */}
+            {selectedSuggestions.length > 0 && !showAddForm && !editingPost && (
+              <div className="space-y-2">
+                {selectedSuggestions.map((s, si) => (
+                  <div
+                    key={si}
+                    className="flex items-center justify-between rounded-lg border border-dashed border-purple-300 bg-purple-50/50 px-4 py-3 dark:border-purple-800 dark:bg-purple-950/20"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Sparkles className="h-4 w-4 shrink-0 text-purple-500" />
+                      <div>
+                        <p className="text-xs font-medium text-purple-700 dark:text-purple-300">
+                          {PLATFORM_CONFIG[s.platform as keyof typeof PLATFORM_CONFIG]?.label ?? s.platform}
+                          {" · "}
+                          {CONTENT_TYPE_LABELS[s.contentType as keyof typeof CONTENT_TYPE_LABELS] ?? s.contentType}
+                          {s.hookType &&
+                            ` · ${HOOK_TYPE_LABELS[s.hookType as keyof typeof HOOK_TYPE_LABELS] ?? s.hookType} hook`}
+                        </p>
+                        <p className="text-[11px] text-purple-500 dark:text-purple-400">
+                          Best time: {String(s.hour).padStart(2, "0")}:00 UTC
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => acceptSuggestion(s)}
+                      className="shrink-0 rounded-lg bg-purple-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-purple-700"
+                    >
+                      Use this
+                    </button>
                   </div>
-                </div>
-                <button
-                  onClick={() => acceptSuggestion(selectedSuggestion)}
-                  className="shrink-0 rounded-lg bg-purple-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-purple-700"
-                >
-                  Use this
-                </button>
+                ))}
               </div>
             )}
 
@@ -1200,7 +1249,7 @@ export default function SchedulePage() {
             )}
 
             {/* Empty state */}
-            {selectedScheduledPosts.length === 0 && !showAddForm && !editingPost && !selectedSuggestion && (
+            {selectedScheduledPosts.length === 0 && !showAddForm && !editingPost && selectedSuggestions.length === 0 && (
               <p className="text-sm text-zinc-400 dark:text-zinc-500">
                 No posts scheduled for this day.
               </p>
