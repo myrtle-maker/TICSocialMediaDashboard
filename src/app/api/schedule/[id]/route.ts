@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { patchScheduledPostSchema } from "@/lib/schedule-schema";
 
 export async function PATCH(
   request: NextRequest,
@@ -7,15 +8,30 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const body = await request.json();
-    const { platform, contentType, hookType, caption, notes, scheduledAt, status } = body;
+
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
+
+    const parsed = patchScheduledPostSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+        { status: 400 }
+      );
+    }
+
+    const { platform, contentType, hookType, caption, notes, scheduledAt, status } = parsed.data;
 
     const post = await prisma.scheduledPost.update({
       where: { id },
       data: {
         ...(platform !== undefined && { platform }),
         ...(contentType !== undefined && { contentType }),
-        ...(hookType !== undefined && { hookType: hookType || null }),
+        ...(hookType !== undefined && { hookType: hookType ?? null }),
         ...(caption !== undefined && { caption }),
         ...(notes !== undefined && { notes }),
         ...(scheduledAt !== undefined && { scheduledAt: new Date(scheduledAt) }),

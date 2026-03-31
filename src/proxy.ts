@@ -33,8 +33,11 @@ export function proxy(request: NextRequest) {
   const expectedToken = generateToken(dashboardPassword);
 
   if (!authCookie || authCookie.value !== expectedToken) {
-    const loginUrl = new URL("/login", request.url);
-    return NextResponse.redirect(loginUrl);
+    // API routes need a JSON 401, not a redirect
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
   return NextResponse.next();

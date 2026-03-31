@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { createScheduledPostSchema } from "@/lib/schedule-schema";
 
 export const dynamic = "force-dynamic";
 
@@ -31,23 +32,30 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { platform, contentType, hookType, caption, notes, scheduledAt } = body;
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
 
-    if (!platform || !contentType || !scheduledAt) {
+    const parsed = createScheduledPostSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "platform, contentType, and scheduledAt are required" },
+        { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
         { status: 400 }
       );
     }
+
+    const { platform, contentType, hookType, caption, notes, scheduledAt } = parsed.data;
 
     const post = await prisma.scheduledPost.create({
       data: {
         platform,
         contentType,
-        hookType: hookType || null,
-        caption: caption || "",
-        notes: notes || "",
+        hookType: hookType ?? null,
+        caption: caption ?? "",
+        notes: notes ?? "",
         scheduledAt: new Date(scheduledAt),
         status: "planned",
       },
