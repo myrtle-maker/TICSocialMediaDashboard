@@ -78,6 +78,38 @@ body {
   }
 }
 
+/* Platform color tokens — light mode defaults */
+:root {
+  --platform-tiktok:          #1a1a1a;
+  --platform-tiktok-bg:       #f0f0f0;
+  --platform-instagram:       #E1306C;
+  --platform-instagram-bg:    #fce4ec;
+  --platform-youtube:         #cc0000;
+  --platform-youtube-bg:      #ffebee;
+  --platform-twitter:         #1a1a1a;
+  --platform-twitter-bg:      #f0f0f0;
+  --platform-facebook:        #1877F2;
+  --platform-facebook-bg:     #e3f2fd;
+  --platform-linkedin:        #0A66C2;
+  --platform-linkedin-bg:     #e1f5fe;
+}
+
+/* Platform color tokens — dark mode overrides */
+.dark {
+  --platform-tiktok:          #d4d4d8;
+  --platform-tiktok-bg:       #27272a;
+  --platform-instagram:       #f06292;
+  --platform-instagram-bg:    #3b1825;
+  --platform-youtube:         #ff5252;
+  --platform-youtube-bg:      #3b1010;
+  --platform-twitter:         #a1a1aa;
+  --platform-twitter-bg:      #27272a;
+  --platform-facebook:        #5b9cf6;
+  --platform-facebook-bg:     #0d2147;
+  --platform-linkedin:        #4a9ede;
+  --platform-linkedin-bg:     #0a1f3d;
+}
+
 /* Recharts dark mode overrides */
 .dark .recharts-cartesian-axis-tick-value {
   fill: #a1a1aa !important;
