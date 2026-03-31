@@ -45,6 +45,8 @@ export function TopPostPreview({ post }: TopPostPreviewProps) {
                 src={post.thumbnailUrl}
                 alt=""
                 className="h-full w-full object-cover"
+                referrerPolicy="no-referrer"
+                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
               />
             </div>
           )}

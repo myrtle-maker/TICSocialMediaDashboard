@@ -24,6 +24,7 @@ interface TikTokRawPost {
   webVideoUrl?: string;
   imageUrl?: string;
   coverUrl?: string;
+  covers?: string[] | { default?: string; medium?: string; origin?: string };
   authorMeta?: {
     id?: string;
     name?: string;
@@ -95,7 +96,12 @@ export function transformTikTok(
       hashtags,
       mentions: extractMentions(caption),
       mediaUrls,
-      thumbnailUrl: raw.coverUrl ?? raw.imageUrl ?? null,
+      thumbnailUrl: raw.coverUrl ?? raw.imageUrl ?? (
+        Array.isArray(raw.covers) ? (raw.covers[0] ?? null) :
+        typeof raw.covers === "object" && raw.covers !== null
+          ? ((raw.covers as { default?: string }).default ?? null)
+          : null
+      ),
       permalink,
 
       hookText,

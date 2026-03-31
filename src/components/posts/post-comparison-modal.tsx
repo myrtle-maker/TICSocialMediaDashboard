@@ -155,6 +155,8 @@ function PostSelector({
                 src={post.thumbnailUrl}
                 alt=""
                 className="h-10 w-10 shrink-0 rounded object-cover"
+                referrerPolicy="no-referrer"
+                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
               />
             ) : (
               <div className="h-10 w-10 shrink-0 rounded bg-zinc-100 dark:bg-zinc-800" />
@@ -232,12 +234,17 @@ function ComparisonView({ postA, postB }: { postA: SocialPost; postB: SocialPost
                 src={post.thumbnailUrl}
                 alt=""
                 className="mb-2 h-24 w-full rounded-md object-cover"
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  const el = e.currentTarget as HTMLImageElement;
+                  el.style.display = "none";
+                  el.nextElementSibling?.classList.remove("hidden");
+                }}
               />
-            ) : (
-              <div className="mb-2 flex h-24 w-full items-center justify-center rounded-md bg-zinc-100 text-xs text-zinc-400 dark:bg-zinc-800 dark:text-zinc-500">
-                No thumbnail
-              </div>
-            )}
+            ) : null}
+            <div className={`mb-2 flex h-24 w-full items-center justify-center rounded-md bg-zinc-100 text-xs text-zinc-400 dark:bg-zinc-800 dark:text-zinc-500 ${post.thumbnailUrl ? "hidden" : ""}`}>
+              No thumbnail
+            </div>
             <p className="text-xs leading-relaxed text-zinc-700 dark:text-zinc-300">
               {truncateText(post.caption, 150)}
             </p>

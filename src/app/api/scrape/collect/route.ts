@@ -97,6 +97,9 @@ export async function POST() {
                 engagementRate: post.engagementRate,
                 viralityScore: post.viralityScore,
                 hookScore: post.hookScore,
+                // Refresh media URLs on every scrape — CDN tokens (Instagram, TikTok) expire
+                ...(post.thumbnailUrl && { thumbnailUrl: post.thumbnailUrl }),
+                ...(post.mediaUrls?.length && { mediaUrls: post.mediaUrls }),
                 scrapedAt: new Date(),
               },
               create: {
