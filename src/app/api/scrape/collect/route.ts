@@ -75,8 +75,15 @@ export async function POST() {
           continue;
         }
 
+        // Compute account's current avg ER so hook scores are relative, not all 50
+        const erAgg = await prisma.post.aggregate({
+          where: { accountId: job.accountId, engagementRate: { gt: 0 } },
+          _avg: { engagementRate: true },
+        });
+        const avgEngagementRate = erAgg._avg.engagementRate ?? undefined;
+
         // Transform and upsert
-        const posts = transformer(items as unknown[], job.accountId);
+        const posts = transformer(items as unknown[], job.accountId, avgEngagementRate);
         let upserted = 0;
 
         for (const post of posts) {
