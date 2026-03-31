@@ -183,6 +183,42 @@ model EmailSubscriber {
   @@map("email_subscribers")
 }
 
+model ContentPillar {
+  id          String     @id @default(cuid())
+  name        String
+  description String?
+  color       String     @default("#6366f1")
+  sortOrder   Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  ideas       PostIdea[]
+
+  @@map("content_pillars")
+}
+
+model PostIdea {
+  id              String        @id @default(cuid())
+  pillarId        String
+  title           String
+  notes           String        @default("")
+  platform        String?
+  contentType     String?
+  hookType        String?
+  targetHashtags  String[]
+  keywords        String[]
+  status          String        @default("idea")
+  scheduledPostId String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  pillar          ContentPillar @relation(fields: [pillarId], references: [id], onDelete: Cascade)
+
+  @@index([pillarId])
+  @@index([status])
+  @@map("post_ideas")
+}
+
 model ScheduledPost {
   id          String   @id @default(cuid())
   platform    String
