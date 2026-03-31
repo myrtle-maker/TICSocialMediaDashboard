@@ -66,6 +66,18 @@ body {
   animation: shake 0.5s ease-in-out;
 }
 
+/* Respect user motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .animate-shake {
+    animation: none;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
 /* Recharts dark mode overrides */
 .dark .recharts-cartesian-axis-tick-value {
   fill: #a1a1aa !important;

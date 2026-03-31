@@ -11,8 +11,8 @@ const badgeVariants = cva(
         secondary: "border-transparent bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100",
         destructive: "border-transparent bg-red-500 text-zinc-50",
         outline: "text-zinc-950 dark:text-zinc-50",
-        success: "border-transparent bg-emerald-100 text-emerald-800",
-        warning: "border-transparent bg-amber-100 text-amber-800",
+        success: "border-transparent bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
+        warning: "border-transparent bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
       },
     },
     defaultVariants: {

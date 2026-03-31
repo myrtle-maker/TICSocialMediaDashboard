@@ -41,9 +41,10 @@ export function Header({
         <Button
           variant="outline"
           size="icon"
+          aria-label="Search"
           onClick={() => setSearchOpen(!searchOpen)}
         >
-          <Search className="h-4 w-4" />
+          <Search className="h-4 w-4" aria-hidden="true" />
         </Button>
 
         {onRefresh && (
@@ -52,11 +53,13 @@ export function Header({
             size="sm"
             onClick={onRefresh}
             disabled={isRefreshing}
+            aria-label={isRefreshing ? "Refreshing data…" : "Refresh data"}
           >
             <RefreshCw
               className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+              aria-hidden="true"
             />
-            <span className="ml-1">Refresh</span>
+            <span className="ml-1">{isRefreshing ? "Refreshing…" : "Refresh"}</span>
           </Button>
         )}
       </div>

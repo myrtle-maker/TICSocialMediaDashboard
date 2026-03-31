@@ -26,7 +26,7 @@ export function KpiCard({
     format === "percentage" ? formatPercentage(value) : formatNumber(value);
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
+    <Card className="transition-shadow duration-200 hover:shadow-md">
       <CardContent className="p-5">
         <MetricTooltip label={label} tooltip={tooltip}>
           <div className="flex items-center justify-between">

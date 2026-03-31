@@ -17,7 +17,10 @@ export function FilterBar() {
           <Filter className="h-3.5 w-3.5" />
           Filters
           {activeFilterCount > 0 && (
-            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-zinc-900 text-[10px] text-white dark:bg-zinc-100 dark:text-zinc-900">
+            <span
+              aria-label={`${activeFilterCount} active filter${activeFilterCount !== 1 ? "s" : ""}`}
+              className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-900 text-[11px] font-semibold text-white dark:bg-zinc-100 dark:text-zinc-900"
+            >
               {activeFilterCount}
             </span>
           )}
