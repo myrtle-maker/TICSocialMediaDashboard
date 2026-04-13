@@ -20,6 +20,7 @@ import {
   LogOut,
   GitCompareArrows,
   Network,
+  Target,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -41,12 +42,14 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   "calendar-clock": CalendarClock,
   "git-compare-arrows": GitCompareArrows,
   network: Network,
+  target: Target,
 };
 
 const navItems = [
   { href: "/", label: "Overview", icon: "layout-dashboard" },
   { href: "/ai-briefing", label: "AI Briefing", icon: "sparkles", ai: true },
   { href: "/insights", label: "Insights", icon: "lightbulb" },
+  { href: "/goals", label: "Goals & Targets", icon: "target" },
   { href: "/platforms", label: "Platforms", icon: "grid-3x3" },
   { href: "/content", label: "Content", icon: "bar-chart-3" },
   { href: "/calendar", label: "Calendar", icon: "calendar-days" },

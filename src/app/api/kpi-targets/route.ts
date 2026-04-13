@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
 const VALID_METRICS = ["engagementRate", "views", "likes", "comments", "shares", "saves", "posts"] as const;
-const VALID_PERIODS = ["monthly", "weekly"] as const;
+const VALID_PERIODS = ["monthly", "weekly", "quarterly"] as const;
 
 const upsertSchema = z.object({
   metric: z.enum(VALID_METRICS),

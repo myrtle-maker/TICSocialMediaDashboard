@@ -828,102 +828,25 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* KPI Targets */}
+      {/* KPI Targets — moved to Goals page */}
       <Card id="kpi-targets">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-sm font-medium">
             <Target className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
-            KPI Targets
+            Goals &amp; Targets
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Set monthly or weekly targets for key metrics. Progress is shown on the Overview dashboard.
+        <CardContent>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            KPI targets, smart suggestions, and goal templates have moved to their own dedicated page.
           </p>
-
-          {/* Existing targets */}
-          {kpiTargets.length > 0 && (
-            <div className="space-y-2">
-              {kpiTargets.map((t) => (
-                <div
-                  key={t.id}
-                  className="flex items-center justify-between rounded-lg border border-zinc-200 p-2.5 dark:border-zinc-700"
-                >
-                  <div className="flex items-center gap-2">
-                    <Target className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-500" />
-                    <span className="text-sm text-zinc-900 dark:text-zinc-100">
-                      {KPI_METRIC_LABELS[t.metric] ?? t.metric}
-                    </span>
-                    <Badge variant="secondary" className="text-[10px] capitalize">{t.period}</Badge>
-                    {t.platform && (
-                      <Badge variant="outline" className="text-[10px] capitalize">{t.platform}</Badge>
-                    )}
-                    <span className="text-xs text-zinc-500 dark:text-zinc-400">→ {t.target.toLocaleString()}</span>
-                  </div>
-                  <button
-                    onClick={() => handleDeleteKpiTarget(t.id)}
-                    className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Add target form */}
-          <div>
-            <p className="mb-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-300">Add Target</p>
-            <div className="flex flex-wrap gap-2">
-              <select
-                value={kpiMetric}
-                onChange={(e) => setKpiMetric(e.target.value)}
-                className="rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
-              >
-                {KPI_METRICS.map((m) => (
-                  <option key={m.value} value={m.value}>{m.label}</option>
-                ))}
-              </select>
-              <select
-                value={kpiPeriod}
-                onChange={(e) => setKpiPeriod(e.target.value)}
-                className="rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
-              >
-                <option value="monthly">Monthly</option>
-                <option value="weekly">Weekly</option>
-              </select>
-              <select
-                value={kpiPlatform}
-                onChange={(e) => setKpiPlatform(e.target.value)}
-                className="rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
-              >
-                {KPI_PLATFORMS.map((p) => (
-                  <option key={p.value} value={p.value}>{p.label}</option>
-                ))}
-              </select>
-              <input
-                type="number"
-                min="0"
-                placeholder="Target value"
-                value={kpiTarget}
-                onChange={(e) => { setKpiTarget(e.target.value); setKpiError(""); }}
-                className="w-36 rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
-              />
-              <Button variant="outline" onClick={handleAddKpiTarget} disabled={kpiSaving}>
-                {kpiSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                <span>Add</span>
-              </Button>
-            </div>
-            {kpiError && (
-              <p className="mt-1 flex items-center text-xs text-red-600 dark:text-red-400">
-                <AlertTriangle className="mr-1 h-3 w-3" />
-                {kpiError}
-              </p>
-            )}
-            <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
-              For Avg Engagement Rate, enter as a decimal (e.g. 0.05 = 5%). For counts, enter the whole number.
-            </p>
-          </div>
+          <a
+            href="/goals"
+            className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+          >
+            <Target className="h-3.5 w-3.5" />
+            Go to Goals &amp; Targets
+          </a>
         </CardContent>
       </Card>
 

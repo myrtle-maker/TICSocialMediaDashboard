@@ -32,7 +32,7 @@ export function KpiTargetsRow({ refreshKey }: KpiTargetsRowProps) {
           <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">KPI Targets</h3>
         </div>
         <Link
-          href="/settings#kpi-targets"
+          href="/goals"
           className="flex items-center gap-1 text-xs text-blue-600 hover:underline dark:text-blue-400"
         >
           Manage
