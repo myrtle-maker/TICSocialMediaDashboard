@@ -26,10 +26,26 @@ model Account {
   lastScrapedAt     DateTime?
   createdAt         DateTime @default(now())
 
-  posts Post[]
+  posts     Post[]
+  snapshots AccountSnapshot[]
 
   @@unique([platform, handle])
   @@map("accounts")
+}
+
+model AccountSnapshot {
+  id         String   @id @default(cuid())
+  accountId  String
+  followers  Int
+  following  Int
+  totalPosts Int
+  snapshotAt DateTime @default(now())
+
+  account    Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+  @@index([snapshotAt])
+  @@map("account_snapshots")
 }
 
 model Post {

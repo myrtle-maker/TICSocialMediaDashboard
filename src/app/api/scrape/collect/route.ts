@@ -147,9 +147,19 @@ export async function POST() {
           data: { status: "succeeded", postsScraped: upserted, completedAt: new Date() },
         });
 
-        await prisma.account.update({
+        const updatedAccount = await prisma.account.update({
           where: { id: job.accountId },
           data: { lastScrapedAt: new Date(), totalPosts: upserted },
+        });
+
+        // Snapshot follower count for growth tracking
+        await prisma.accountSnapshot.create({
+          data: {
+            accountId: job.accountId,
+            followers: updatedAccount.followers,
+            following: updatedAccount.following,
+            totalPosts: upserted,
+          },
         });
 
         results.push({ jobId: job.id, platform: job.platform, status: "collected", postsCollected: upserted });
