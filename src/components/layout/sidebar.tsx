@@ -22,6 +22,7 @@ import {
   Network,
   Target,
   KanbanSquare,
+  Compass,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -45,6 +46,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   network: Network,
   target: Target,
   "kanban-square": KanbanSquare,
+  compass: Compass,
 };
 
 const navItems = [
@@ -57,6 +59,7 @@ const navItems = [
   { href: "/calendar", label: "Calendar", icon: "calendar-days" },
   { href: "/schedule", label: "Schedule Planner", icon: "calendar-clock" },
   { href: "/monthly", label: "Monthly Report", icon: "git-compare-arrows" },
+  { href: "/strategy", label: "Strategy", icon: "compass" },
   { href: "/mindmap", label: "Idea Mindmap", icon: "network" },
   { href: "/workflow", label: "Workflow", icon: "kanban-square" },
   { href: "/hooks", label: "Hooks", icon: "zap" },
