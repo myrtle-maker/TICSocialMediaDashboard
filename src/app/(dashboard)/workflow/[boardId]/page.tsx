@@ -21,7 +21,7 @@ import {
 } from "@dnd-kit/sortable";
 import { useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { Plus, Loader2, ArrowLeft, MoreHorizontal, Trash2, GripVertical, Calendar, User, Tag } from "lucide-react";
+import { Plus, Loader2, ArrowLeft, MoreHorizontal, Trash2, GripVertical, Calendar, User, CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PLATFORM_CONFIG } from "@/lib/constants";
@@ -295,11 +295,19 @@ export default function BoardPage({ params }: { params: Promise<{ boardId: strin
   const [lists, setLists] = useState<BoardList[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCard, setActiveCard] = useState<BoardCard | null>(null);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Refs so DnD handlers always see the latest lists without stale-closure issues
+  // Track origin list + pending cross-list destination in refs so they're
+  // always current regardless of React re-render / closure timing.
+  const dragOriginListId = useRef<string | null>(null);
+  const pendingMove = useRef<{ toListId: string; toIndex: number } | null>(null);
+
+  // listsRef mirrors state for same-list reorder lookups in handleDragEnd
+  // (safe there because same-list never triggers a setLists from handleDragOver)
   const listsRef = useRef<BoardList[]>([]);
   useEffect(() => { listsRef.current = lists; }, [lists]);
-  const dragOriginListId = useRef<string | null>(null);
+
   const [selectedCard, setSelectedCard] = useState<{ card: BoardCard; listName: string } | null>(null);
   const [addingColumn, setAddingColumn] = useState(false);
   const [newColName, setNewColName] = useState("");
@@ -324,14 +332,28 @@ export default function BoardPage({ params }: { params: Promise<{ boardId: strin
 
   // ── DnD handlers ──────────────────────────────────────────────────────────
 
-  // Always uses the ref so handlers are never stale
-  const findListByCardId = (cardId: string) =>
-    listsRef.current.find((l) => l.cards.some((c) => c.id === cardId));
+  const persistMove = async (cardId: string, toListId: string, newIndex: number) => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    setSaveStatus("saving");
+    try {
+      const res = await fetch(`/api/board-cards/${cardId}/move`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ toListId, newIndex }),
+      });
+      setSaveStatus(res.ok ? "saved" : "error");
+    } catch {
+      setSaveStatus("error");
+    } finally {
+      saveTimer.current = setTimeout(() => setSaveStatus("idle"), 2000);
+    }
+  };
 
   const handleDragStart = (event: DragStartEvent) => {
     const id = event.active.id as string;
-    const list = findListByCardId(id);
+    const list = listsRef.current.find((l) => l.cards.some((c) => c.id === id));
     dragOriginListId.current = list?.id ?? null;
+    pendingMove.current = null;
     setActiveCard(list?.cards.find((c) => c.id === id) ?? null);
   };
 
@@ -342,17 +364,23 @@ export default function BoardPage({ params }: { params: Promise<{ boardId: strin
     const activeId = active.id as string;
     const overId = over.id as string;
 
-    const activeList = findListByCardId(activeId);
-    // over could be a card or a list
-    const overList = findListByCardId(overId) ?? lists.find((l) => l.id === overId);
-
-    if (!activeList || !overList || activeList.id === overList.id) return;
-
-    // Moving card to a different list visually (optimistic)
+    // Use the functional updater so `prev` is always the latest state — no
+    // stale-closure issues even across multiple column crossings.
     setLists((prev) => {
+      const activeList = prev.find((l) => l.cards.some((c) => c.id === activeId));
+      const overList =
+        prev.find((l) => l.cards.some((c) => c.id === overId)) ??
+        prev.find((l) => l.id === overId);
+
+      if (!activeList || !overList || activeList.id === overList.id) return prev;
+
       const card = activeList.cards.find((c) => c.id === activeId)!;
       const overCardIndex = overList.cards.findIndex((c) => c.id === overId);
       const insertIndex = overCardIndex >= 0 ? overCardIndex : overList.cards.length;
+
+      // Record the destination synchronously so handleDragEnd can read it
+      // from a ref without touching React state.
+      pendingMove.current = { toListId: overList.id, toIndex: insertIndex };
 
       return prev.map((l) => {
         if (l.id === activeList.id) return { ...l, cards: l.cards.filter((c) => c.id !== activeId) };
@@ -368,51 +396,39 @@ export default function BoardPage({ params }: { params: Promise<{ boardId: strin
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
-    const originListId = dragOriginListId.current;
+    const pending = pendingMove.current;
+    pendingMove.current = null;
     dragOriginListId.current = null;
     setActiveCard(null);
+
     if (!over) return;
 
     const activeId = active.id as string;
     const overId = over.id as string;
+
+    if (pending) {
+      // Cross-list move: pendingMove was written synchronously inside
+      // the setLists updater in handleDragOver — always accurate.
+      await persistMove(activeId, pending.toListId, pending.toIndex);
+      return;
+    }
+
+    // Same-list reorder — handleDragOver never fired so listsRef is still
+    // the original order; use it to compute old/new indices.
     if (activeId === overId) return;
-
-    // Use the ref so we always have the latest state (post-optimistic-update)
-    const currentLists = listsRef.current;
-
-    // Where is the card right now? (may have moved to destination via handleDragOver)
-    const currentList = currentLists.find((l) => l.cards.some((c) => c.id === activeId));
+    const currentList = listsRef.current.find((l) => l.cards.some((c) => c.id === activeId));
     if (!currentList) return;
 
-    const isCrossListMove = originListId !== null && originListId !== currentList.id;
+    const oldIndex = currentList.cards.findIndex((c) => c.id === activeId);
+    const newIndex = currentList.cards.findIndex((c) => c.id === overId);
+    if (newIndex < 0 || oldIndex === newIndex) return;
 
-    if (isCrossListMove) {
-      // handleDragOver already placed the card in the destination list at the right index.
-      // Just persist that position.
-      const newIndex = currentList.cards.findIndex((c) => c.id === activeId);
-      await fetch(`/api/board-cards/${activeId}/move`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ toListId: currentList.id, newIndex: newIndex >= 0 ? newIndex : currentList.cards.length }),
-      });
-    } else {
-      // Same-list reorder — apply arrayMove then persist
-      const oldIndex = currentList.cards.findIndex((c) => c.id === activeId);
-      const newIndex = currentList.cards.findIndex((c) => c.id === overId);
-      if (newIndex < 0 || oldIndex === newIndex) return;
-
-      setLists((prev) =>
-        prev.map((l) =>
-          l.id === currentList.id ? { ...l, cards: arrayMove(l.cards, oldIndex, newIndex) } : l
-        )
-      );
-
-      await fetch(`/api/board-cards/${activeId}/move`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ toListId: currentList.id, newIndex }),
-      });
-    }
+    setLists((prev) =>
+      prev.map((l) =>
+        l.id === currentList.id ? { ...l, cards: arrayMove(l.cards, oldIndex, newIndex) } : l
+      )
+    );
+    await persistMove(activeId, currentList.id, newIndex);
   };
 
   // ── Mutations ──────────────────────────────────────────────────────────────
@@ -510,7 +526,23 @@ export default function BoardPage({ params }: { params: Promise<{ boardId: strin
             <p className="text-xs text-zinc-500 dark:text-zinc-400">{board.description}</p>
           )}
         </div>
-        <div className="ml-auto flex items-center gap-2 text-xs text-zinc-400 dark:text-zinc-500">
+        <div className="ml-auto flex items-center gap-3 text-xs text-zinc-400 dark:text-zinc-500">
+          {/* Save status indicator */}
+          {saveStatus === "saving" && (
+            <span className="flex items-center gap-1 text-zinc-400 dark:text-zinc-500">
+              <Loader2 className="h-3 w-3 animate-spin" /> Saving…
+            </span>
+          )}
+          {saveStatus === "saved" && (
+            <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
+              <CheckCircle2 className="h-3 w-3" /> Saved
+            </span>
+          )}
+          {saveStatus === "error" && (
+            <span className="flex items-center gap-1 text-red-500 dark:text-red-400">
+              <AlertCircle className="h-3 w-3" /> Save failed
+            </span>
+          )}
           <span>{lists.length} column{lists.length !== 1 ? "s" : ""}</span>
           <span>·</span>
           <span>{lists.reduce((s, l) => s + l.cards.length, 0)} card{lists.reduce((s, l) => s + l.cards.length, 0) !== 1 ? "s" : ""}</span>
