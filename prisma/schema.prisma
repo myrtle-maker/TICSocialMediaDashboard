@@ -274,6 +274,7 @@ model BoardCard {
   contentType String?
   priority    String    @default("medium")
   labels      String[]
+  links       Json      @default("[]")
   dueDate     DateTime?
   assignee    String?
   sortOrder   Int       @default(0)

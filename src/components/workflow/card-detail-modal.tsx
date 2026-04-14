@@ -1,11 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Trash2, Tag, Calendar, User, Monitor, FileVideo, Loader2, CalendarClock, CheckCircle2 } from "lucide-react";
+import { X, Trash2, Tag, Calendar, User, Monitor, FileVideo, Loader2, CalendarClock, CheckCircle2, Link2, Plus, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { PLATFORM_CONFIG } from "@/lib/constants";
 import type { Platform } from "@/types/social";
+
+export interface CardLink {
+  url: string;
+  label: string;
+}
 
 export interface BoardCardData {
   id: string;
@@ -16,6 +20,7 @@ export interface BoardCardData {
   contentType: string | null;
   priority: string;
   labels: string[];
+  links: CardLink[];
   dueDate: string | null;
   assignee: string | null;
   sortOrder: number;
@@ -54,14 +59,14 @@ export function CardDetailModal({ card, listName, onClose, onUpdated, onDeleted 
   const [assignee, setAssignee] = useState(card.assignee ?? "");
   const [labelInput, setLabelInput] = useState("");
   const [labels, setLabels] = useState<string[]>(card.labels ?? []);
+  const [links, setLinks] = useState<CardLink[]>(card.links ?? []);
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [scheduling, setScheduling] = useState(false);
   const [scheduled, setScheduled] = useState(false);
 
-  useEffect(() => { setDirty(true); }, [title, description, platform, contentType, priority, dueDate, assignee, labels]);
-  // Reset dirty on mount
+  useEffect(() => { setDirty(true); }, [title, description, platform, contentType, priority, dueDate, assignee, labels, links]);
   useEffect(() => { setDirty(false); }, []);
 
   const handleSave = async () => {
@@ -77,13 +82,14 @@ export function CardDetailModal({ card, listName, onClose, onUpdated, onDeleted 
           contentType: contentType || null,
           priority,
           labels,
+          links: links.filter((l) => l.url.trim()),
           dueDate: dueDate || null,
           assignee: assignee || null,
         }),
       });
       const data = await res.json();
       if (data.card) {
-        onUpdated(data.card);
+        onUpdated({ ...data.card, links: data.card.links ?? [] });
         setDirty(false);
       }
     } catch { /* ignore */ }
@@ -130,13 +136,15 @@ export function CardDetailModal({ card, listName, onClose, onUpdated, onDeleted 
 
   const addLabel = () => {
     const val = labelInput.trim();
-    if (val && !labels.includes(val)) {
-      setLabels((prev) => [...prev, val]);
-    }
+    if (val && !labels.includes(val)) setLabels((prev) => [...prev, val]);
     setLabelInput("");
   };
-
   const removeLabel = (l: string) => setLabels((prev) => prev.filter((x) => x !== l));
+
+  const addLink = () => setLinks((prev) => [...prev, { url: "", label: "" }]);
+  const updateLink = (i: number, field: "url" | "label", value: string) =>
+    setLinks((prev) => prev.map((l, idx) => idx === i ? { ...l, [field]: value } : l));
+  const removeLink = (i: number) => setLinks((prev) => prev.filter((_, idx) => idx !== i));
 
   const isOverdue = dueDate && new Date(dueDate) < new Date();
 
@@ -274,6 +282,67 @@ export function CardDetailModal({ card, listName, onClose, onUpdated, onDeleted 
                 className="flex-1 rounded-lg border border-zinc-300 px-3 py-1.5 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
               />
               <Button size="sm" variant="outline" onClick={addLabel} disabled={!labelInput.trim()}>Add</Button>
+            </div>
+          </div>
+
+          {/* Links */}
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <label className="flex items-center gap-1 text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                <Link2 className="h-3 w-3" /> Links
+              </label>
+              <button
+                onClick={addLink}
+                className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+              >
+                <Plus className="h-3 w-3" /> Add link
+              </button>
+            </div>
+
+            {links.length === 0 && (
+              <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                No links yet — add reference videos, scripts, briefs, or any file URLs.
+              </p>
+            )}
+
+            <div className="space-y-2">
+              {links.map((link, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <div className="flex flex-1 flex-col gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 p-2.5 dark:border-zinc-700 dark:bg-zinc-800/60">
+                    <input
+                      value={link.label}
+                      onChange={(e) => updateLink(i, "label", e.target.value)}
+                      placeholder="Label (e.g. Script Doc, Reference Video)"
+                      className="w-full bg-transparent text-xs font-medium text-zinc-700 placeholder:text-zinc-400 focus:outline-none dark:text-zinc-300"
+                    />
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        value={link.url}
+                        onChange={(e) => updateLink(i, "url", e.target.value)}
+                        placeholder="https://…"
+                        className="flex-1 bg-transparent text-xs text-zinc-500 placeholder:text-zinc-400 focus:outline-none dark:text-zinc-400"
+                      />
+                      {link.url && (
+                        <a
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="shrink-0 text-zinc-400 hover:text-indigo-500 dark:hover:text-indigo-400"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => removeLink(i)}
+                    className="shrink-0 rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-red-500 dark:hover:bg-zinc-800 dark:hover:text-red-400"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
 

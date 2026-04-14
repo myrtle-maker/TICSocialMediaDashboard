@@ -21,7 +21,7 @@ import {
 } from "@dnd-kit/sortable";
 import { useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { Plus, Loader2, ArrowLeft, MoreHorizontal, Trash2, GripVertical, Calendar, User, CheckCircle2, AlertCircle } from "lucide-react";
+import { Plus, Loader2, ArrowLeft, MoreHorizontal, Trash2, GripVertical, Calendar, User, CheckCircle2, AlertCircle, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PLATFORM_CONFIG } from "@/lib/constants";
@@ -134,6 +134,11 @@ function KanbanCard({
           {card.assignee && (
             <span className="flex items-center gap-0.5">
               <User className="h-2.5 w-2.5" />{card.assignee}
+            </span>
+          )}
+          {card.links?.length > 0 && (
+            <span className="flex items-center gap-0.5">
+              <Link2 className="h-2.5 w-2.5" />{card.links.length}
             </span>
           )}
         </div>

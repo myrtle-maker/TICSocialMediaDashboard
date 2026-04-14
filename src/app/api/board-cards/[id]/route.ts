@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
+const linkSchema = z.object({
+  url: z.string().min(1).max(2000),
+  label: z.string().max(200).default(""),
+});
+
 const patchSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   description: z.string().optional(),
@@ -9,6 +14,7 @@ const patchSchema = z.object({
   contentType: z.string().nullable().optional(),
   priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
   labels: z.array(z.string()).optional(),
+  links: z.array(linkSchema).optional(),
   dueDate: z.string().nullable().optional(),
   assignee: z.string().nullable().optional(),
   listId: z.string().optional(),
