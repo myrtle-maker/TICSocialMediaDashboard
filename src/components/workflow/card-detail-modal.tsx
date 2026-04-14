@@ -1,0 +1,270 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { X, Trash2, Tag, Calendar, User, Monitor, FileVideo, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { PLATFORM_CONFIG } from "@/lib/constants";
+import type { Platform } from "@/types/social";
+
+export interface BoardCardData {
+  id: string;
+  listId: string;
+  title: string;
+  description: string;
+  platform: string | null;
+  contentType: string | null;
+  priority: string;
+  labels: string[];
+  dueDate: string | null;
+  assignee: string | null;
+  sortOrder: number;
+  createdAt: string;
+}
+
+const PRIORITY_CONFIG = {
+  low:    { label: "Low",    color: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400" },
+  medium: { label: "Medium", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" },
+  high:   { label: "High",   color: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" },
+  urgent: { label: "Urgent", color: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300" },
+};
+
+const PLATFORMS = ["", "tiktok", "instagram", "youtube", "twitter", "facebook", "linkedin"];
+const CONTENT_TYPES = ["", "video", "short", "reel", "carousel", "image", "story", "live", "text"];
+
+interface Props {
+  card: BoardCardData;
+  listName: string;
+  onClose: () => void;
+  onUpdated: (card: BoardCardData) => void;
+  onDeleted: (id: string) => void;
+}
+
+export function CardDetailModal({ card, listName, onClose, onUpdated, onDeleted }: Props) {
+  const [title, setTitle] = useState(card.title);
+  const [description, setDescription] = useState(card.description);
+  const [platform, setPlatform] = useState(card.platform ?? "");
+  const [contentType, setContentType] = useState(card.contentType ?? "");
+  const [priority, setPriority] = useState(card.priority);
+  const [dueDate, setDueDate] = useState(card.dueDate ? card.dueDate.slice(0, 10) : "");
+  const [assignee, setAssignee] = useState(card.assignee ?? "");
+  const [labelInput, setLabelInput] = useState("");
+  const [labels, setLabels] = useState<string[]>(card.labels ?? []);
+  const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [dirty, setDirty] = useState(false);
+
+  useEffect(() => { setDirty(true); }, [title, description, platform, contentType, priority, dueDate, assignee, labels]);
+  // Reset dirty on mount
+  useEffect(() => { setDirty(false); }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/board-cards/${card.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: title.trim() || card.title,
+          description,
+          platform: platform || null,
+          contentType: contentType || null,
+          priority,
+          labels,
+          dueDate: dueDate || null,
+          assignee: assignee || null,
+        }),
+      });
+      const data = await res.json();
+      if (data.card) {
+        onUpdated(data.card);
+        setDirty(false);
+      }
+    } catch { /* ignore */ }
+    finally { setSaving(false); }
+  };
+
+  const handleDelete = async () => {
+    await fetch(`/api/board-cards/${card.id}`, { method: "DELETE" });
+    onDeleted(card.id);
+    onClose();
+  };
+
+  const addLabel = () => {
+    const val = labelInput.trim();
+    if (val && !labels.includes(val)) {
+      setLabels((prev) => [...prev, val]);
+    }
+    setLabelInput("");
+  };
+
+  const removeLabel = (l: string) => setLabels((prev) => prev.filter((x) => x !== l));
+
+  const isOverdue = dueDate && new Date(dueDate) < new Date();
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 pt-16">
+      <div className="w-full max-w-xl rounded-xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-700 dark:bg-zinc-900">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3 border-b border-zinc-200 p-4 dark:border-zinc-700">
+          <div className="min-w-0 flex-1">
+            <p className="mb-1 text-[10px] font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wide">
+              {listName}
+            </p>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full bg-transparent text-base font-semibold text-zinc-900 placeholder:text-zinc-400 focus:outline-none dark:text-zinc-100"
+              placeholder="Card title…"
+            />
+          </div>
+          <button onClick={onClose} className="shrink-0 rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="space-y-4 p-4">
+          {/* Description */}
+          <div>
+            <label className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">Description / Notes</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={4}
+              placeholder="Add script notes, brief, or any details…"
+              className="w-full resize-none rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+            />
+          </div>
+
+          {/* Row: Platform + Content Type */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 flex items-center gap-1 text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                <Monitor className="h-3 w-3" /> Platform
+              </label>
+              <select
+                value={platform}
+                onChange={(e) => setPlatform(e.target.value)}
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+              >
+                <option value="">Any platform</option>
+                {PLATFORMS.filter(Boolean).map((p) => (
+                  <option key={p} value={p}>{PLATFORM_CONFIG[p as Platform]?.label ?? p}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 flex items-center gap-1 text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                <FileVideo className="h-3 w-3" /> Content Type
+              </label>
+              <select
+                value={contentType}
+                onChange={(e) => setContentType(e.target.value)}
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 capitalize focus:border-zinc-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+              >
+                <option value="">Any type</option>
+                {CONTENT_TYPES.filter(Boolean).map((ct) => (
+                  <option key={ct} value={ct} className="capitalize">{ct}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Row: Priority + Due Date + Assignee */}
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">Priority</label>
+              <select
+                value={priority}
+                onChange={(e) => setPriority(e.target.value)}
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+              >
+                {Object.entries(PRIORITY_CONFIG).map(([v, c]) => (
+                  <option key={v} value={v}>{c.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 flex items-center gap-1 text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                <Calendar className="h-3 w-3" /> Due Date
+              </label>
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none dark:bg-zinc-800 dark:text-zinc-100 ${
+                  isOverdue
+                    ? "border-red-400 text-red-600 dark:border-red-600 dark:text-red-400"
+                    : "border-zinc-300 text-zinc-900 dark:border-zinc-600"
+                }`}
+              />
+            </div>
+            <div>
+              <label className="mb-1 flex items-center gap-1 text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                <User className="h-3 w-3" /> Assignee
+              </label>
+              <input
+                value={assignee}
+                onChange={(e) => setAssignee(e.target.value)}
+                placeholder="e.g. Alex"
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+              />
+            </div>
+          </div>
+
+          {/* Labels */}
+          <div>
+            <label className="mb-1 flex items-center gap-1 text-xs font-medium text-zinc-600 dark:text-zinc-400">
+              <Tag className="h-3 w-3" /> Labels
+            </label>
+            <div className="mb-2 flex flex-wrap gap-1.5">
+              {labels.map((l) => (
+                <span key={l} className="inline-flex items-center gap-1 rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
+                  {l}
+                  <button onClick={() => removeLabel(l)} className="text-indigo-400 hover:text-indigo-600">
+                    <X className="h-2.5 w-2.5" />
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input
+                value={labelInput}
+                onChange={(e) => setLabelInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addLabel(); } }}
+                placeholder="Add label, press Enter…"
+                className="flex-1 rounded-lg border border-zinc-300 px-3 py-1.5 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+              />
+              <Button size="sm" variant="outline" onClick={addLabel} disabled={!labelInput.trim()}>Add</Button>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="flex items-center justify-between border-t border-zinc-200 pt-4 dark:border-zinc-700">
+            {confirmDelete ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-red-600 dark:text-red-400">Delete this card?</span>
+                <Button size="sm" variant="destructive" onClick={handleDelete}>Yes, delete</Button>
+                <Button size="sm" variant="ghost" onClick={() => setConfirmDelete(false)}>Cancel</Button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setConfirmDelete(true)}
+                className="flex items-center gap-1 text-xs text-zinc-400 hover:text-red-500 dark:hover:text-red-400"
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Delete card
+              </button>
+            )}
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
+              <Button size="sm" onClick={handleSave} disabled={saving || !dirty}>
+                {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                Save
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

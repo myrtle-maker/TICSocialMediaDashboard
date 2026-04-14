@@ -21,6 +21,7 @@ import {
   GitCompareArrows,
   Network,
   Target,
+  KanbanSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -43,6 +44,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   "git-compare-arrows": GitCompareArrows,
   network: Network,
   target: Target,
+  "kanban-square": KanbanSquare,
 };
 
 const navItems = [
@@ -56,6 +58,7 @@ const navItems = [
   { href: "/schedule", label: "Schedule Planner", icon: "calendar-clock" },
   { href: "/monthly", label: "Monthly Report", icon: "git-compare-arrows" },
   { href: "/mindmap", label: "Idea Mindmap", icon: "network" },
+  { href: "/workflow", label: "Workflow", icon: "kanban-square" },
   { href: "/hooks", label: "Hooks", icon: "zap" },
   { href: "/competitors", label: "Competitors", icon: "swords" },
   { href: "/audience", label: "Audience", icon: "users" },

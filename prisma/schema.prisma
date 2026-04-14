@@ -235,6 +235,57 @@ model PostIdea {
   @@map("post_ideas")
 }
 
+model Board {
+  id          String      @id @default(cuid())
+  name        String
+  description String?
+  color       String      @default("#6366f1")
+  sortOrder   Int         @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  lists       BoardList[]
+
+  @@map("boards")
+}
+
+model BoardList {
+  id        String      @id @default(cuid())
+  boardId   String
+  name      String
+  color     String?
+  sortOrder Int         @default(0)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  board     Board       @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  cards     BoardCard[]
+
+  @@index([boardId])
+  @@map("board_lists")
+}
+
+model BoardCard {
+  id          String    @id @default(cuid())
+  listId      String
+  title       String
+  description String    @default("")
+  platform    String?
+  contentType String?
+  priority    String    @default("medium")
+  labels      String[]
+  dueDate     DateTime?
+  assignee    String?
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  list        BoardList @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@index([listId])
+  @@map("board_cards")
+}
+
 model ScheduledPost {
   id          String   @id @default(cuid())
   platform    String
