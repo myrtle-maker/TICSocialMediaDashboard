@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, use } from "react";
+import { useState, useEffect, useCallback, use, useRef } from "react";
 import Link from "next/link";
 import {
   DndContext,
@@ -295,6 +295,11 @@ export default function BoardPage({ params }: { params: Promise<{ boardId: strin
   const [lists, setLists] = useState<BoardList[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCard, setActiveCard] = useState<BoardCard | null>(null);
+
+  // Refs so DnD handlers always see the latest lists without stale-closure issues
+  const listsRef = useRef<BoardList[]>([]);
+  useEffect(() => { listsRef.current = lists; }, [lists]);
+  const dragOriginListId = useRef<string | null>(null);
   const [selectedCard, setSelectedCard] = useState<{ card: BoardCard; listName: string } | null>(null);
   const [addingColumn, setAddingColumn] = useState(false);
   const [newColName, setNewColName] = useState("");
@@ -319,12 +324,14 @@ export default function BoardPage({ params }: { params: Promise<{ boardId: strin
 
   // ── DnD handlers ──────────────────────────────────────────────────────────
 
+  // Always uses the ref so handlers are never stale
   const findListByCardId = (cardId: string) =>
-    lists.find((l) => l.cards.some((c) => c.id === cardId));
+    listsRef.current.find((l) => l.cards.some((c) => c.id === cardId));
 
   const handleDragStart = (event: DragStartEvent) => {
     const id = event.active.id as string;
     const list = findListByCardId(id);
+    dragOriginListId.current = list?.id ?? null;
     setActiveCard(list?.cards.find((c) => c.id === id) ?? null);
   };
 
@@ -361,46 +368,49 @@ export default function BoardPage({ params }: { params: Promise<{ boardId: strin
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
+    const originListId = dragOriginListId.current;
+    dragOriginListId.current = null;
     setActiveCard(null);
     if (!over) return;
 
     const activeId = active.id as string;
     const overId = over.id as string;
-
     if (activeId === overId) return;
 
-    const activeList = findListByCardId(activeId);
-    if (!activeList) return;
+    // Use the ref so we always have the latest state (post-optimistic-update)
+    const currentLists = listsRef.current;
 
-    const overList = findListByCardId(overId) ?? lists.find((l) => l.id === overId);
-    if (!overList) return;
+    // Where is the card right now? (may have moved to destination via handleDragOver)
+    const currentList = currentLists.find((l) => l.cards.some((c) => c.id === activeId));
+    if (!currentList) return;
 
-    if (activeList.id === overList.id) {
-      // Same list — reorder
-      const oldIndex = activeList.cards.findIndex((c) => c.id === activeId);
-      const newIndex = activeList.cards.findIndex((c) => c.id === overId);
-      if (oldIndex === newIndex) return;
+    const isCrossListMove = originListId !== null && originListId !== currentList.id;
+
+    if (isCrossListMove) {
+      // handleDragOver already placed the card in the destination list at the right index.
+      // Just persist that position.
+      const newIndex = currentList.cards.findIndex((c) => c.id === activeId);
+      await fetch(`/api/board-cards/${activeId}/move`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ toListId: currentList.id, newIndex: newIndex >= 0 ? newIndex : currentList.cards.length }),
+      });
+    } else {
+      // Same-list reorder — apply arrayMove then persist
+      const oldIndex = currentList.cards.findIndex((c) => c.id === activeId);
+      const newIndex = currentList.cards.findIndex((c) => c.id === overId);
+      if (newIndex < 0 || oldIndex === newIndex) return;
 
       setLists((prev) =>
         prev.map((l) =>
-          l.id === activeList.id ? { ...l, cards: arrayMove(l.cards, oldIndex, newIndex) } : l
+          l.id === currentList.id ? { ...l, cards: arrayMove(l.cards, oldIndex, newIndex) } : l
         )
       );
 
       await fetch(`/api/board-cards/${activeId}/move`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ toListId: activeList.id, newIndex }),
-      });
-    } else {
-      // Cross-list — find new index in destination
-      const newIndex = overList.cards.findIndex((c) => c.id === activeId);
-      const insertIndex = newIndex >= 0 ? newIndex : overList.cards.length;
-
-      await fetch(`/api/board-cards/${activeId}/move`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ toListId: overList.id, newIndex: insertIndex }),
+        body: JSON.stringify({ toListId: currentList.id, newIndex }),
       });
     }
   };

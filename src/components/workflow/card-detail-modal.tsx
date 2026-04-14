@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Trash2, Tag, Calendar, User, Monitor, FileVideo, Loader2 } from "lucide-react";
+import { X, Trash2, Tag, Calendar, User, Monitor, FileVideo, Loader2, CalendarClock, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PLATFORM_CONFIG } from "@/lib/constants";
@@ -32,6 +32,10 @@ const PRIORITY_CONFIG = {
 const PLATFORMS = ["", "tiktok", "instagram", "youtube", "twitter", "facebook", "linkedin"];
 const CONTENT_TYPES = ["", "video", "short", "reel", "carousel", "image", "story", "live", "text"];
 
+// Valid values accepted by /api/schedule
+const SCHEDULE_PLATFORMS = new Set(["tiktok", "instagram", "youtube", "twitter", "facebook", "linkedin"]);
+const SCHEDULE_CONTENT_TYPES = new Set(["video", "image", "carousel", "text", "reel", "short", "story", "live"]);
+
 interface Props {
   card: BoardCardData;
   listName: string;
@@ -53,6 +57,8 @@ export function CardDetailModal({ card, listName, onClose, onUpdated, onDeleted 
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [scheduling, setScheduling] = useState(false);
+  const [scheduled, setScheduled] = useState(false);
 
   useEffect(() => { setDirty(true); }, [title, description, platform, contentType, priority, dueDate, assignee, labels]);
   // Reset dirty on mount
@@ -88,6 +94,38 @@ export function CardDetailModal({ card, listName, onClose, onUpdated, onDeleted 
     await fetch(`/api/board-cards/${card.id}`, { method: "DELETE" });
     onDeleted(card.id);
     onClose();
+  };
+
+  const canSchedule =
+    platform && SCHEDULE_PLATFORMS.has(platform) &&
+    contentType && SCHEDULE_CONTENT_TYPES.has(contentType) &&
+    dueDate;
+
+  const scheduleTooltip = !canSchedule
+    ? !platform || !SCHEDULE_PLATFORMS.has(platform)
+      ? "Set a platform to enable scheduling"
+      : !contentType || !SCHEDULE_CONTENT_TYPES.has(contentType)
+      ? "Set a content type to enable scheduling"
+      : "Set a due date to use as the scheduled time"
+    : null;
+
+  const handleSendToSchedule = async () => {
+    if (!canSchedule) return;
+    setScheduling(true);
+    try {
+      const res = await fetch("/api/schedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          platform,
+          contentType,
+          scheduledAt: new Date(dueDate).toISOString(),
+          notes: [title, description].filter(Boolean).join("\n\n") || undefined,
+        }),
+      });
+      if (res.ok) setScheduled(true);
+    } catch { /* ignore */ }
+    finally { setScheduling(false); }
   };
 
   const addLabel = () => {
@@ -240,27 +278,57 @@ export function CardDetailModal({ card, listName, onClose, onUpdated, onDeleted 
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between border-t border-zinc-200 pt-4 dark:border-zinc-700">
-            {confirmDelete ? (
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-red-600 dark:text-red-400">Delete this card?</span>
-                <Button size="sm" variant="destructive" onClick={handleDelete}>Yes, delete</Button>
-                <Button size="sm" variant="ghost" onClick={() => setConfirmDelete(false)}>Cancel</Button>
+          <div className="space-y-3 border-t border-zinc-200 pt-4 dark:border-zinc-700">
+            {/* Send to Schedule */}
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Send to Schedule Planner</span>
+              <div className="relative group/sched">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!canSchedule || scheduling || scheduled}
+                  onClick={handleSendToSchedule}
+                  className={scheduled ? "border-green-500 text-green-600 dark:text-green-400" : ""}
+                >
+                  {scheduled ? (
+                    <><CheckCircle2 className="h-3.5 w-3.5" /> Scheduled</>
+                  ) : scheduling ? (
+                    <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Sending…</>
+                  ) : (
+                    <><CalendarClock className="h-3.5 w-3.5" /> Send to Schedule</>
+                  )}
+                </Button>
+                {scheduleTooltip && (
+                  <div className="pointer-events-none absolute bottom-full right-0 mb-1.5 hidden w-52 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-[11px] text-zinc-500 shadow-md group-hover/sched:block dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
+                    {scheduleTooltip}
+                  </div>
+                )}
               </div>
-            ) : (
-              <button
-                onClick={() => setConfirmDelete(true)}
-                className="flex items-center gap-1 text-xs text-zinc-400 hover:text-red-500 dark:hover:text-red-400"
-              >
-                <Trash2 className="h-3.5 w-3.5" /> Delete card
-              </button>
-            )}
-            <div className="flex gap-2">
-              <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
-              <Button size="sm" onClick={handleSave} disabled={saving || !dirty}>
-                {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                Save
-              </Button>
+            </div>
+
+            {/* Delete / Save row */}
+            <div className="flex items-center justify-between">
+              {confirmDelete ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-red-600 dark:text-red-400">Delete this card?</span>
+                  <Button size="sm" variant="destructive" onClick={handleDelete}>Yes, delete</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setConfirmDelete(false)}>Cancel</Button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setConfirmDelete(true)}
+                  className="flex items-center gap-1 text-xs text-zinc-400 hover:text-red-500 dark:hover:text-red-400"
+                >
+                  <Trash2 className="h-3.5 w-3.5" /> Delete card
+                </button>
+              )}
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
+                <Button size="sm" onClick={handleSave} disabled={saving || !dirty}>
+                  {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                  Save
+                </Button>
+              </div>
             </div>
           </div>
         </div>
