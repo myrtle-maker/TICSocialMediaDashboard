@@ -41,7 +41,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="h-screen overflow-hidden bg-white font-sans antialiased dark:bg-zinc-950">
+      <body className="h-screen overflow-hidden font-sans antialiased">
         {children}
         <Toaster position="bottom-right" richColors closeButton />
       </body>

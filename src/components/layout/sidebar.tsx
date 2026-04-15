@@ -83,12 +83,12 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "flex flex-col border-r border-zinc-200 bg-white transition-all duration-200 dark:border-zinc-700 dark:bg-zinc-900",
+        "flex flex-col border-r glass-sidebar transition-all duration-200",
         collapsed ? "w-16" : "w-64"
       )}
     >
       {/* Logo */}
-      <div className="flex h-16 items-center border-b border-zinc-200 px-4 dark:border-zinc-700">
+      <div className="flex h-16 items-center border-b border-white/60 px-4 dark:border-white/[0.06]">
         {!collapsed && (
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-900 dark:bg-zinc-100">
@@ -125,8 +125,8 @@ export function Sidebar() {
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                 isActive
-                  ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
-                  : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                  ? "bg-white/60 text-zinc-900 dark:bg-white/10 dark:text-zinc-100"
+                  : "text-zinc-600 hover:bg-white/40 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/[0.07] dark:hover:text-zinc-100"
               )}
             >
               {Icon && <Icon className={cn("h-4 w-4 shrink-0", "ai" in item && item.ai && "text-purple-500")} />}
@@ -144,11 +144,11 @@ export function Sidebar() {
       </nav>
 
       {/* Footer: Logout + Theme Toggle + Collapse */}
-      <div className="border-t border-zinc-200 p-3 dark:border-zinc-700">
+      <div className="border-t border-white/60 p-3 dark:border-white/[0.06]">
         <button
           onClick={handleLogout}
           className={cn(
-            "mb-2 flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100",
+            "mb-2 flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-500 transition-colors hover:bg-white/40 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/[0.07] dark:hover:text-zinc-100",
             collapsed && "justify-center px-0"
           )}
         >
@@ -160,7 +160,7 @@ export function Sidebar() {
           <button
             onClick={() => setCollapsed(!collapsed)}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+            className="rounded-lg p-2 text-zinc-500 hover:bg-white/40 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/[0.07] dark:hover:text-zinc-100"
           >
             {collapsed ? (
               <ChevronRight className="h-4 w-4" />

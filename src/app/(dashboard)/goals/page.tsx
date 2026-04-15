@@ -272,7 +272,7 @@ export default function GoalsPage() {
             { label: "Behind", value: behind, color: "text-red-500 dark:text-red-400" },
             { label: "Completed", value: complete, color: "text-emerald-600 dark:text-emerald-400" },
           ].map(({ label, value, color }) => (
-            <div key={label} className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
+            <div key={label} className="rounded-xl border glass-card p-4">
               <p className="text-xs text-zinc-500 dark:text-zinc-400">{label}</p>
               <p className={`text-2xl font-bold ${color}`}>{value}</p>
             </div>
@@ -460,7 +460,7 @@ export default function GoalsPage() {
             return (
               <div
                 key={template.id}
-                className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900 flex flex-col"
+                className="rounded-xl border glass-card p-4 flex flex-col"
               >
                 <div className="mb-2 flex items-center gap-2">
                   <Icon className={`h-4 w-4 ${template.color}`} />

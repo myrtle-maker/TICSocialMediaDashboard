@@ -163,7 +163,7 @@ export function CardDetailModal({ card, listName, onClose, onUpdated, onDeleted 
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 pt-16">
-      <div className="w-full max-w-xl rounded-xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-700 dark:bg-zinc-900">
+      <div className="w-full max-w-xl rounded-xl border glass-elevated shadow-2xl">
         {/* Header */}
         <div className="flex items-start justify-between gap-3 border-b border-zinc-200 p-4 dark:border-zinc-700">
           <div className="min-w-0 flex-1">
@@ -321,7 +321,7 @@ export function CardDetailModal({ card, listName, onClose, onUpdated, onDeleted 
             <div className="space-y-2">
               {links.map((link, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <div className="flex flex-1 flex-col gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 p-2.5 dark:border-zinc-700 dark:bg-zinc-800/60">
+                  <div className="flex flex-1 flex-col gap-1.5 rounded-lg border border-zinc-200 bg-white/40 dark:bg-white/[0.04] p-2.5 dark:border-zinc-700">
                     <input
                       value={link.label}
                       onChange={(e) => updateLink(i, "label", e.target.value)}
@@ -381,7 +381,7 @@ export function CardDetailModal({ card, listName, onClose, onUpdated, onDeleted 
                   )}
                 </Button>
                 {scheduleTooltip && (
-                  <div className="pointer-events-none absolute bottom-full right-0 mb-1.5 hidden w-52 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-[11px] text-zinc-500 shadow-md group-hover/sched:block dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
+                  <div className="pointer-events-none absolute bottom-full right-0 mb-1.5 hidden w-52 rounded-lg border glass-elevated px-2.5 py-1.5 text-[11px] text-zinc-500 shadow-md group-hover/sched:block dark:text-zinc-400">
                     {scheduleTooltip}
                   </div>
                 )}

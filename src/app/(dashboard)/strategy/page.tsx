@@ -122,7 +122,7 @@ function PillarCard({
   const hasGuidelines = (pillar.guidelines ?? "").trim().length > 0;
 
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900 overflow-hidden">
+    <div className="rounded-xl border glass-card overflow-hidden">
       {/* Color strip */}
       <div className="h-1.5" style={{ backgroundColor: pillar.color }} />
 
@@ -301,7 +301,7 @@ function GuideCard({
   const preview = guide.content.split("\n").filter(Boolean).slice(0, 2).join(" · ");
 
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+    <div className="rounded-xl border glass-card">
       <div className="p-4">
         {editing ? (
           <div className="space-y-3">
@@ -373,7 +373,7 @@ function GuideCard({
                   <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2 leading-relaxed">{preview}</p>
                 )}
                 {expanded && (
-                  <div className="mt-3 rounded-lg bg-zinc-50 dark:bg-zinc-800/60 p-3">
+                  <div className="mt-3 rounded-lg bg-white/40 dark:bg-white/[0.04] p-3">
                     <pre className="whitespace-pre-wrap text-xs text-zinc-700 dark:text-zinc-300 leading-relaxed font-sans">
                       {guide.content}
                     </pre>
@@ -425,7 +425,7 @@ function NewGuideModal({ onCreated, onClose }: { onCreated: (g: StrategyGuide) =
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-lg rounded-xl border border-zinc-200 bg-white p-6 shadow-xl dark:border-zinc-700 dark:bg-zinc-900">
+      <div className="w-full max-w-lg rounded-xl border glass-elevated p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">New Reference Guide</h3>
           <button onClick={onClose} className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300">
@@ -497,7 +497,7 @@ function NewPillarModal({ onCreated, onClose }: { onCreated: (p: ContentPillar) 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md rounded-xl border border-zinc-200 bg-white p-6 shadow-xl dark:border-zinc-700 dark:bg-zinc-900">
+      <div className="w-full max-w-md rounded-xl border glass-elevated p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">New Content Pillar</h3>
           <button onClick={onClose} className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300">
@@ -602,7 +602,7 @@ export default function StrategyPage() {
         {loading ? (
           <>
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
+              <div key={i} className="rounded-xl border glass-card p-4">
                 <Skeleton className="h-4 w-28 mb-2" />
                 <Skeleton className="h-7 w-10" />
               </div>
@@ -617,7 +617,7 @@ export default function StrategyPage() {
             ].map((s) => {
               const Icon = s.icon;
               return (
-                <div key={s.label} className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
+                <div key={s.label} className="rounded-xl border glass-card p-4">
                   <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
                     <Icon className={`h-3.5 w-3.5 ${s.color}`} />
                     {s.label}
@@ -653,7 +653,7 @@ export default function StrategyPage() {
       {loading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+            <div key={i} className="overflow-hidden rounded-xl border glass-card">
               <Skeleton className="h-1.5 w-full rounded-none" />
               <div className="space-y-3 p-4">
                 <Skeleton className="h-5 w-3/4" />

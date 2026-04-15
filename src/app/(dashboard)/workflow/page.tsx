@@ -106,7 +106,7 @@ export default function WorkflowPage() {
       {/* Create modal */}
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-lg rounded-xl border border-zinc-200 bg-white p-6 shadow-xl dark:border-zinc-700 dark:bg-zinc-900">
+          <div className="w-full max-w-lg rounded-xl border glass-elevated p-6 shadow-xl">
             <h3 className="mb-4 text-base font-semibold text-zinc-900 dark:text-zinc-100">Create New Board</h3>
 
             <div className="space-y-4">
@@ -185,7 +185,7 @@ export default function WorkflowPage() {
       {loading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+            <div key={i} className="overflow-hidden rounded-xl border glass-card">
               <Skeleton className="h-2 w-full rounded-none" />
               <div className="space-y-3 p-4">
                 <Skeleton className="h-5 w-3/4" />
@@ -252,7 +252,7 @@ export default function WorkflowPage() {
       {/* Delete confirm dialog */}
       {deleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-sm rounded-xl border border-zinc-200 bg-white p-6 shadow-xl dark:border-zinc-700 dark:bg-zinc-900">
+          <div className="w-full max-w-sm rounded-xl border glass-elevated p-6 shadow-xl">
             <h3 className="mb-2 text-base font-semibold text-zinc-900 dark:text-zinc-100">Delete board?</h3>
             <p className="mb-5 text-sm text-zinc-500 dark:text-zinc-400">
               This will permanently delete the board and all its cards. This cannot be undone.

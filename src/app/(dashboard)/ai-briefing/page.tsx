@@ -219,7 +219,7 @@ function ContentPredictor() {
 
         {/* Result area */}
         {loading && (
-          <div className="flex flex-col items-center gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-6 py-8 dark:border-zinc-700 dark:bg-zinc-800/50">
+          <div className="flex flex-col items-center gap-3 rounded-lg border px-6 py-8 bg-white/40 dark:bg-white/[0.04]">
             <div className="h-16 w-16 animate-pulse rounded-full bg-zinc-200 dark:bg-zinc-700" />
             <div className="h-4 w-48 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
             <div className="h-3 w-64 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
@@ -242,7 +242,7 @@ function ContentPredictor() {
         )}
 
         {result && !loading && (
-          <div className="space-y-4 rounded-lg border border-zinc-200 bg-zinc-50 px-5 py-5 dark:border-zinc-700 dark:bg-zinc-800/50">
+          <div className="space-y-4 rounded-lg border px-5 py-5 bg-white/40 dark:bg-white/[0.04]">
             {/* Score */}
             <div className="flex items-center gap-4">
               <div className="relative h-20 w-20 shrink-0">
@@ -624,7 +624,7 @@ function StrategyBriefing() {
             )}
             <div
               ref={textRef}
-              className="max-h-[700px] overflow-y-auto rounded-lg border border-zinc-200 bg-zinc-50/50 px-5 py-4 dark:border-zinc-700 dark:bg-zinc-900/30"
+              className="max-h-[700px] overflow-y-auto rounded-lg border px-5 py-4 bg-white/40 dark:bg-white/[0.04]"
             >
               {renderBriefingText(briefing)}
               {loading && (

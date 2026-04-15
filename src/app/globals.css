@@ -9,14 +9,95 @@
   --color-foreground: #09090b;
 }
 
+/* ── Body gradient mesh ──────────────────────────────────────────────────── */
+
 body {
   font-family: var(--font-sans), system-ui, sans-serif;
+  background:
+    radial-gradient(ellipse 80% 60% at 15% 15%, rgba(99, 102, 241, 0.14) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 55% at 85% 85%, rgba(139, 92, 246, 0.11) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 65% 5%,  rgba(236, 72, 153, 0.07) 0%, transparent 50%),
+    #f1f1f8;
+  background-attachment: fixed;
 }
 
 /* Dark mode body */
 .dark body,
 .dark {
   color-scheme: dark;
+}
+
+.dark body {
+  background:
+    radial-gradient(ellipse 80% 60% at 15% 15%, rgba(99, 102, 241, 0.24) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 55% at 85% 85%, rgba(139, 92, 246, 0.18) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 65% 5%,  rgba(59, 130, 246, 0.10) 0%, transparent 50%),
+    #06060f;
+  background-attachment: fixed;
+}
+
+/* ── Glass utility classes ───────────────────────────────────────────────── */
+
+/* Panel cards — main page surfaces */
+.glass-card {
+  background: rgba(255, 255, 255, 0.60) !important;
+  backdrop-filter: blur(20px) saturate(1.5);
+  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  border-color: rgba(255, 255, 255, 0.75) !important;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+.dark .glass-card {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.09) !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.40);
+}
+
+/* Modals / elevated dialogs */
+.glass-elevated {
+  background: rgba(255, 255, 255, 0.82) !important;
+  backdrop-filter: blur(32px) saturate(1.8);
+  -webkit-backdrop-filter: blur(32px) saturate(1.8);
+  border-color: rgba(255, 255, 255, 0.88) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.14), 0 0 0 1px rgba(255, 255, 255, 0.40);
+}
+.dark .glass-elevated {
+  background: rgba(12, 12, 28, 0.88) !important;
+  border-color: rgba(255, 255, 255, 0.10) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.70);
+}
+
+/* Sidebar */
+.glass-sidebar {
+  background: rgba(255, 255, 255, 0.70);
+  backdrop-filter: blur(24px) saturate(1.5);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  border-color: rgba(255, 255, 255, 0.78) !important;
+}
+.dark .glass-sidebar {
+  background: rgba(6, 6, 18, 0.78);
+  border-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* Header / filter bar */
+.glass-bar {
+  background: rgba(255, 255, 255, 0.52);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-color: rgba(255, 255, 255, 0.65) !important;
+}
+.dark .glass-bar {
+  background: rgba(255, 255, 255, 0.025);
+  border-color: rgba(255, 255, 255, 0.07) !important;
+}
+
+/* Kanban columns / secondary surfaces */
+.glass-column {
+  background: rgba(255, 255, 255, 0.38);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.dark .glass-column {
+  background: rgba(255, 255, 255, 0.03);
 }
 
 /* Custom scrollbar */

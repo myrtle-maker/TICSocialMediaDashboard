@@ -89,7 +89,7 @@ function KanbanCard({
     <div
       ref={setNodeRef}
       style={style}
-      className="group relative mb-2 rounded-lg border border-zinc-200 bg-white p-3 shadow-sm hover:border-zinc-300 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-zinc-600"
+      className="group relative mb-2 rounded-lg border glass-card p-3 shadow-sm hover:border-zinc-300 hover:shadow-md dark:hover:border-zinc-600"
     >
       {/* Drag handle */}
       <button
@@ -155,7 +155,7 @@ function KanbanCard({
 
 function DragCard({ card }: { card: BoardCard }) {
   return (
-    <div className="mb-2 w-64 rotate-2 rounded-lg border border-zinc-300 bg-white p-3 shadow-2xl dark:border-zinc-600 dark:bg-zinc-800">
+    <div className="mb-2 w-64 rotate-2 rounded-lg border glass-elevated p-3 shadow-2xl">
       <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{card.title}</p>
     </div>
   );
@@ -203,7 +203,7 @@ function Column({
   };
 
   return (
-    <div className="flex w-72 shrink-0 flex-col rounded-xl bg-zinc-100 dark:bg-zinc-800/60">
+    <div className="flex w-72 shrink-0 flex-col rounded-xl glass-column">
       {/* Column header */}
       <div className="flex items-center justify-between px-3 py-2.5">
         {editingName ? (
@@ -235,7 +235,7 @@ function Column({
               <MoreHorizontal className="h-3.5 w-3.5" />
             </button>
             {showMenu && (
-              <div className="absolute right-0 top-6 z-20 w-36 rounded-lg border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
+              <div className="absolute right-0 top-6 z-20 w-36 rounded-lg border glass-elevated py-1 shadow-lg">
                 <button
                   onClick={() => { onDeleteList(list.id); setShowMenu(false); }}
                   className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
@@ -260,7 +260,7 @@ function Column({
       {/* Add card */}
       <div className="px-2 pb-2">
         {addingCard ? (
-          <div className="rounded-lg border border-zinc-300 bg-white p-2 dark:border-zinc-600 dark:bg-zinc-800">
+          <div className="rounded-lg border glass-card p-2">
             <textarea
               autoFocus
               value={newCardTitle}
@@ -511,10 +511,10 @@ export default function BoardPage({ params }: { params: Promise<{ boardId: strin
         {/* Column skeletons */}
         <div className="flex gap-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="w-72 shrink-0 rounded-xl bg-zinc-100 p-3 dark:bg-zinc-800/60">
+            <div key={i} className="w-72 shrink-0 rounded-xl glass-column p-3">
               <Skeleton className="mb-3 h-5 w-28" />
               {Array.from({ length: i === 0 ? 3 : i === 1 ? 2 : 1 }).map((_, j) => (
-                <div key={j} className="mb-2 rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-800">
+                <div key={j} className="mb-2 rounded-lg border glass-card p-3">
                   <Skeleton className="mb-2 h-4 w-full" />
                   <Skeleton className="h-3.5 w-2/3" />
                 </div>
@@ -580,7 +580,7 @@ export default function BoardPage({ params }: { params: Promise<{ boardId: strin
             {/* Add column */}
             <div className="w-72 shrink-0">
               {addingColumn ? (
-                <div className="rounded-xl bg-zinc-100 p-3 dark:bg-zinc-800/60">
+                <div className="rounded-xl glass-column p-3">
                   <input
                     autoFocus
                     value={newColName}

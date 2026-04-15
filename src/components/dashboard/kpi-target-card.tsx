@@ -71,7 +71,7 @@ export function KpiTargetCard({ item, onDelete }: KpiTargetCardProps) {
   const showProjected = !isAverage && !isComplete && item.daysElapsed > 1;
 
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
+    <div className="rounded-xl border glass-card p-4">
       <div className="mb-2 flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">{label}</p>

@@ -96,7 +96,7 @@ export function IdeaFormModal({ open, onClose, onSaved, defaultPillarId, editIde
     <Dialog.Root open={open} onOpenChange={(o) => !o && onClose()}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50" />
-        <Dialog.Content className="fixed left-[50%] top-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%] rounded-xl border border-zinc-200 bg-white p-6 shadow-xl max-h-[85vh] overflow-y-auto dark:border-zinc-700 dark:bg-zinc-900">
+        <Dialog.Content className="fixed left-[50%] top-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%] rounded-xl border glass-elevated p-6 shadow-xl max-h-[85vh] overflow-y-auto">
           <Dialog.Close className="absolute right-4 top-4 rounded-sm opacity-70 hover:opacity-100">
             <X className="h-4 w-4" />
           </Dialog.Close>

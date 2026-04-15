@@ -23,7 +23,7 @@ export function Header({
   const [searchOpen, setSearchOpen] = useState(false);
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-zinc-200 bg-white px-6 dark:border-zinc-700 dark:bg-zinc-900">
+    <header className="flex h-16 items-center justify-between border-b glass-card px-6">
       <div>
         <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{title}</h2>
         {description && (

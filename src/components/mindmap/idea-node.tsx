@@ -26,7 +26,7 @@ function IdeaNodeComponent({ data }: { data: IdeaNodeData }) {
 
   return (
     <div
-      className="rounded-xl border border-zinc-200 bg-white shadow-md dark:border-zinc-700 dark:bg-zinc-800"
+      className="rounded-xl border glass-card shadow-md"
       style={{
         width: 220,
         borderLeftColor: data.pillarColor,

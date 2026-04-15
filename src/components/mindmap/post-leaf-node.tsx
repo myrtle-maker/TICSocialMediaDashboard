@@ -20,7 +20,7 @@ export interface PostLeafNodeData {
 function PostLeafNodeComponent({ data }: { data: PostLeafNodeData }) {
   return (
     <div
-      className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white shadow-sm cursor-pointer hover:border-zinc-400 dark:border-zinc-600 dark:bg-zinc-800 dark:hover:border-zinc-400 transition-colors"
+      className="flex items-center gap-2 rounded-lg border glass-card shadow-sm cursor-pointer hover:border-zinc-400 dark:hover:border-zinc-400 transition-colors"
       style={{ width: 200 }}
       onClick={(e) => { e.stopPropagation(); data.onOpen(data.id); }}
       title="Click to view post"

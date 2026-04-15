@@ -792,7 +792,7 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 sm:grid-cols-3">
-            <div className="rounded-lg bg-zinc-50 p-4 text-center dark:bg-zinc-800">
+            <div className="rounded-lg bg-white/40 dark:bg-white/[0.04] p-4 text-center">
               <HardDrive className="mx-auto mb-2 h-5 w-5 text-zinc-400 dark:text-zinc-500" />
               <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Storage</p>
               <Badge variant="success" className="mt-1">
@@ -802,7 +802,7 @@ export default function SettingsPage() {
                 Data persists in a PostgreSQL database hosted on Vercel.
               </p>
             </div>
-            <div className="rounded-lg bg-zinc-50 p-4 text-center dark:bg-zinc-800">
+            <div className="rounded-lg bg-white/40 dark:bg-white/[0.04] p-4 text-center">
               <Shield className="mx-auto mb-2 h-5 w-5 text-zinc-400 dark:text-zinc-500" />
               <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Privacy</p>
               <Badge variant="success" className="mt-1">
@@ -812,7 +812,7 @@ export default function SettingsPage() {
                 API tokens encrypted at rest. Data accessible only to your team.
               </p>
             </div>
-            <div className="rounded-lg bg-zinc-50 p-4 text-center dark:bg-zinc-800">
+            <div className="rounded-lg bg-white/40 dark:bg-white/[0.04] p-4 text-center">
               <RefreshCw className="mx-auto mb-2 h-5 w-5 text-zinc-400 dark:text-zinc-500" />
               <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Accounts</p>
               <Badge variant="secondary" className="mt-1">

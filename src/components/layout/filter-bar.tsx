@@ -11,7 +11,7 @@ export function FilterBar() {
   const { activeFilterCount, resetFilters } = useFilters();
 
   return (
-    <div className="border-b border-zinc-200 bg-zinc-50/50 px-6 py-3 dark:border-zinc-700 dark:bg-zinc-900/50">
+    <div className="border-b glass-bar px-6 py-3">
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">
           <Filter className="h-3.5 w-3.5" />

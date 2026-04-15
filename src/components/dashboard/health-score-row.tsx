@@ -72,7 +72,7 @@ export function HealthScoreRow({ refreshKey }: HealthScoreRowProps) {
         {scores.map((s) => (
           <div
             key={s.platform}
-            className="flex justify-center rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800/50"
+            className="flex justify-center rounded-xl border glass-card p-4"
           >
             <HealthGauge
               platform={s.platform}

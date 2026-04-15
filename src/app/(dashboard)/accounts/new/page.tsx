@@ -170,7 +170,7 @@ export default function AddAccountPage() {
               )}
 
               {selectedPlatform && (
-                <div className="rounded-lg bg-zinc-50 p-3 dark:bg-zinc-800">
+                <div className="rounded-lg bg-white/40 dark:bg-white/[0.04] p-3">
                   <p className="text-xs text-zinc-600 dark:text-zinc-400">
                     We will use the Apify{" "}
                     <Badge variant="secondary" className="text-[10px]">
