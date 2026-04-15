@@ -5,6 +5,7 @@ import { X, Trash2, Tag, Calendar, User, Monitor, FileVideo, Loader2, CalendarCl
 import { Button } from "@/components/ui/button";
 import { PLATFORM_CONFIG } from "@/lib/constants";
 import type { Platform } from "@/types/social";
+import { toast } from "sonner";
 
 export interface CardLink {
   url: string;
@@ -91,8 +92,13 @@ export function CardDetailModal({ card, listName, onClose, onUpdated, onDeleted 
       if (data.card) {
         onUpdated({ ...data.card, links: data.card.links ?? [] });
         setDirty(false);
+        toast.success("Card saved");
+      } else {
+        toast.error("Failed to save card");
       }
-    } catch { /* ignore */ }
+    } catch {
+      toast.error("Failed to save card");
+    }
     finally { setSaving(false); }
   };
 
@@ -129,8 +135,15 @@ export function CardDetailModal({ card, listName, onClose, onUpdated, onDeleted 
           notes: [title, description].filter(Boolean).join("\n\n") || undefined,
         }),
       });
-      if (res.ok) setScheduled(true);
-    } catch { /* ignore */ }
+      if (res.ok) {
+        setScheduled(true);
+        toast.success("Added to Schedule Planner");
+      } else {
+        toast.error("Failed to schedule — check platform and content type");
+      }
+    } catch {
+      toast.error("Failed to schedule");
+    }
     finally { setScheduling(false); }
   };
 

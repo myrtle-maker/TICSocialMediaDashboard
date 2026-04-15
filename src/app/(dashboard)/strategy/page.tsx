@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -94,14 +96,27 @@ function PillarCard({
         body: JSON.stringify({ name: name.trim() || pillar.name, description: description || undefined, color, guidelines }),
       });
       const data = await res.json();
-      if (data.pillar) { onUpdated(data.pillar); setEditing(false); }
-    } catch { /* ignore */ }
+      if (data.pillar) {
+        onUpdated(data.pillar);
+        setEditing(false);
+        toast.success("Pillar saved");
+      } else {
+        toast.error("Failed to save pillar");
+      }
+    } catch {
+      toast.error("Failed to save pillar");
+    }
     finally { setSaving(false); }
   };
 
   const handleDelete = async () => {
-    await fetch(`/api/pillars/${pillar.id}`, { method: "DELETE" });
-    onDeleted(pillar.id);
+    try {
+      await fetch(`/api/pillars/${pillar.id}`, { method: "DELETE" });
+      onDeleted(pillar.id);
+      toast.success("Pillar deleted");
+    } catch {
+      toast.error("Failed to delete pillar");
+    }
   };
 
   const hasGuidelines = (pillar.guidelines ?? "").trim().length > 0;
@@ -260,14 +275,27 @@ function GuideCard({
         body: JSON.stringify({ title: title.trim() || guide.title, category, content }),
       });
       const data = await res.json();
-      if (data.guide) { onUpdated(data.guide); setEditing(false); }
-    } catch { /* ignore */ }
+      if (data.guide) {
+        onUpdated(data.guide);
+        setEditing(false);
+        toast.success("Guide saved");
+      } else {
+        toast.error("Failed to save guide");
+      }
+    } catch {
+      toast.error("Failed to save guide");
+    }
     finally { setSaving(false); }
   };
 
   const handleDelete = async () => {
-    await fetch(`/api/strategy/guides/${guide.id}`, { method: "DELETE" });
-    onDeleted(guide.id);
+    try {
+      await fetch(`/api/strategy/guides/${guide.id}`, { method: "DELETE" });
+      onDeleted(guide.id);
+      toast.success("Guide deleted");
+    } catch {
+      toast.error("Failed to delete guide");
+    }
   };
 
   const preview = guide.content.split("\n").filter(Boolean).slice(0, 2).join(" · ");
@@ -570,26 +598,37 @@ export default function StrategyPage() {
       </div>
 
       {/* Summary strip */}
-      {!loading && (
-        <div className="grid grid-cols-3 gap-3 sm:grid-cols-3">
-          {[
-            { label: "Content Pillars", value: pillars.length, icon: Layers, color: "text-indigo-500" },
-            { label: "Ideas Across Pillars", value: totalIdeas, icon: Network, color: "text-purple-500" },
-            { label: "Reference Guides", value: guides.length, icon: BookOpen, color: "text-blue-500" },
-          ].map((s) => {
-            const Icon = s.icon;
-            return (
-              <div key={s.label} className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
-                <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
-                  <Icon className={`h-3.5 w-3.5 ${s.color}`} />
-                  {s.label}
-                </div>
-                <p className="mt-1 text-2xl font-bold text-zinc-900 dark:text-zinc-100">{s.value}</p>
+      <div className="grid grid-cols-3 gap-3 sm:grid-cols-3">
+        {loading ? (
+          <>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
+                <Skeleton className="h-4 w-28 mb-2" />
+                <Skeleton className="h-7 w-10" />
               </div>
-            );
-          })}
-        </div>
-      )}
+            ))}
+          </>
+        ) : (
+          <>
+            {[
+              { label: "Content Pillars", value: pillars.length, icon: Layers, color: "text-indigo-500" },
+              { label: "Ideas Across Pillars", value: totalIdeas, icon: Network, color: "text-purple-500" },
+              { label: "Reference Guides", value: guides.length, icon: BookOpen, color: "text-blue-500" },
+            ].map((s) => {
+              const Icon = s.icon;
+              return (
+                <div key={s.label} className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
+                  <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+                    <Icon className={`h-3.5 w-3.5 ${s.color}`} />
+                    {s.label}
+                  </div>
+                  <p className="mt-1 text-2xl font-bold text-zinc-900 dark:text-zinc-100">{s.value}</p>
+                </div>
+              );
+            })}
+          </>
+        )}
+      </div>
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-zinc-200 dark:border-zinc-700">
@@ -612,8 +651,21 @@ export default function StrategyPage() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-7 w-7 animate-spin text-zinc-400" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+              <Skeleton className="h-1.5 w-full rounded-none" />
+              <div className="space-y-3 p-4">
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-2/3" />
+                <div className="flex gap-2 pt-1">
+                  <Skeleton className="h-4 w-12" />
+                  <Skeleton className="h-4 w-24" />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : tab === "pillars" ? (
         /* ── Pillars ── */

@@ -6,6 +6,8 @@ import { Plus, Loader2, Trash2, Layout, Video, CalendarDays, Megaphone } from "l
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 interface BoardSummary {
   id: string;
@@ -55,22 +57,34 @@ export default function WorkflowPage() {
     if (!newName.trim()) return;
     setCreating(true);
     try {
-      await fetch("/api/boards", {
+      const res = await fetch("/api/boards", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newName.trim(), description: newDescription.trim() || undefined, color: newColor, template: newTemplate }),
       });
-      setNewName(""); setNewDescription(""); setNewColor(BOARD_COLORS[0]); setNewTemplate("video-production");
-      setShowCreate(false);
-      await loadBoards();
-    } catch { /* ignore */ }
+      if (res.ok) {
+        setNewName(""); setNewDescription(""); setNewColor(BOARD_COLORS[0]); setNewTemplate("video-production");
+        setShowCreate(false);
+        await loadBoards();
+        toast.success("Board created");
+      } else {
+        toast.error("Failed to create board");
+      }
+    } catch {
+      toast.error("Failed to create board");
+    }
     finally { setCreating(false); }
   };
 
   const handleDelete = async (id: string) => {
-    await fetch(`/api/boards/${id}`, { method: "DELETE" });
-    setDeleteConfirm(null);
-    await loadBoards();
+    try {
+      await fetch(`/api/boards/${id}`, { method: "DELETE" });
+      setDeleteConfirm(null);
+      await loadBoards();
+      toast.success("Board deleted");
+    } catch {
+      toast.error("Failed to delete board");
+    }
   };
 
   const totalCards = (board: BoardSummary) => board.lists.reduce((s, l) => s + l._count.cards, 0);
@@ -169,8 +183,20 @@ export default function WorkflowPage() {
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-7 w-7 animate-spin text-zinc-400" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+              <Skeleton className="h-2 w-full rounded-none" />
+              <div className="space-y-3 p-4">
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="h-4 w-full" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-5 w-20 rounded-full" />
+                  <Skeleton className="h-5 w-16 rounded-full" />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : boards.length === 0 ? (
         <div className="rounded-xl border border-dashed border-zinc-300 bg-white/50 p-12 text-center dark:border-zinc-700 dark:bg-zinc-900/50">

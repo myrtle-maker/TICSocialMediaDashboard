@@ -21,7 +21,9 @@ import {
 } from "@dnd-kit/sortable";
 import { useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { Plus, Loader2, ArrowLeft, MoreHorizontal, Trash2, GripVertical, Calendar, User, CheckCircle2, AlertCircle, Link2 } from "lucide-react";
+import { Plus, Loader2, ArrowLeft, MoreHorizontal, Trash2, GripVertical, Calendar, User, Link2 } from "lucide-react";
+import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PLATFORM_CONFIG } from "@/lib/constants";
@@ -300,8 +302,6 @@ export default function BoardPage({ params }: { params: Promise<{ boardId: strin
   const [lists, setLists] = useState<BoardList[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCard, setActiveCard] = useState<BoardCard | null>(null);
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Track origin list + pending cross-list destination in refs so they're
   // always current regardless of React re-render / closure timing.
@@ -338,19 +338,15 @@ export default function BoardPage({ params }: { params: Promise<{ boardId: strin
   // ── DnD handlers ──────────────────────────────────────────────────────────
 
   const persistMove = async (cardId: string, toListId: string, newIndex: number) => {
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    setSaveStatus("saving");
     try {
       const res = await fetch(`/api/board-cards/${cardId}/move`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ toListId, newIndex }),
       });
-      setSaveStatus(res.ok ? "saved" : "error");
+      if (!res.ok) toast.error("Failed to save card position");
     } catch {
-      setSaveStatus("error");
-    } finally {
-      saveTimer.current = setTimeout(() => setSaveStatus("idle"), 2000);
+      toast.error("Failed to save card position");
     }
   };
 
@@ -502,8 +498,30 @@ export default function BoardPage({ params }: { params: Promise<{ boardId: strin
 
   if (loading) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-7 w-7 animate-spin text-zinc-400" />
+      <div className="flex h-full flex-col">
+        {/* Header skeleton */}
+        <div className="mb-4 flex items-center gap-3">
+          <Skeleton className="h-8 w-8 rounded-lg" />
+          <Skeleton className="h-4 w-1 rounded-full" />
+          <div className="space-y-1.5">
+            <Skeleton className="h-5 w-36" />
+            <Skeleton className="h-3.5 w-48" />
+          </div>
+        </div>
+        {/* Column skeletons */}
+        <div className="flex gap-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="w-72 shrink-0 rounded-xl bg-zinc-100 p-3 dark:bg-zinc-800/60">
+              <Skeleton className="mb-3 h-5 w-28" />
+              {Array.from({ length: i === 0 ? 3 : i === 1 ? 2 : 1 }).map((_, j) => (
+                <div key={j} className="mb-2 rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-800">
+                  <Skeleton className="mb-2 h-4 w-full" />
+                  <Skeleton className="h-3.5 w-2/3" />
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -532,22 +550,6 @@ export default function BoardPage({ params }: { params: Promise<{ boardId: strin
           )}
         </div>
         <div className="ml-auto flex items-center gap-3 text-xs text-zinc-400 dark:text-zinc-500">
-          {/* Save status indicator */}
-          {saveStatus === "saving" && (
-            <span className="flex items-center gap-1 text-zinc-400 dark:text-zinc-500">
-              <Loader2 className="h-3 w-3 animate-spin" /> Saving…
-            </span>
-          )}
-          {saveStatus === "saved" && (
-            <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
-              <CheckCircle2 className="h-3 w-3" /> Saved
-            </span>
-          )}
-          {saveStatus === "error" && (
-            <span className="flex items-center gap-1 text-red-500 dark:text-red-400">
-              <AlertCircle className="h-3 w-3" /> Save failed
-            </span>
-          )}
           <span>{lists.length} column{lists.length !== 1 ? "s" : ""}</span>
           <span>·</span>
           <span>{lists.reduce((s, l) => s + l.cards.length, 0)} card{lists.reduce((s, l) => s + l.cards.length, 0) !== 1 ? "s" : ""}</span>
