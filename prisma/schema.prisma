@@ -219,6 +219,7 @@ model StrategyGuide {
   title     String
   category  String   @default("general")
   content   String   @default("")
+  files     Json     @default("[]")
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

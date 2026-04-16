@@ -5,7 +5,8 @@ import Link from "next/link";
 import {
   Plus, Pencil, Trash2, Check, X, ChevronDown, ChevronUp,
   Loader2, BookOpen, Layers, Megaphone, Users, Palette,
-  FileText, Settings2, Network, ExternalLink,
+  FileText, Settings2, Network, ExternalLink, Upload,
+  FileType2, File as FileIcon, Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,11 +27,21 @@ interface ContentPillar {
   ideas: { id: string }[];
 }
 
+export interface GuideFile {
+  id: string;
+  name: string;
+  url: string;
+  contentType: string;
+  size: number;
+  uploadedAt: string;
+}
+
 interface StrategyGuide {
   id: string;
   title: string;
   category: string;
   content: string;
+  files: GuideFile[];
   sortOrder: number;
   updatedAt: string;
 }
@@ -64,6 +75,57 @@ const PILLAR_COLORS = [
   "#6366f1","#ec4899","#10b981","#f59e0b",
   "#3b82f6","#8b5cf6","#ef4444","#06b6d4",
 ];
+
+// ---------------------------------------------------------------------------
+// File helpers
+// ---------------------------------------------------------------------------
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function FileRow({
+  file,
+  onDelete,
+}: {
+  file: GuideFile;
+  onDelete: (id: string) => void;
+}) {
+  const isPdf = file.contentType === "application/pdf" || file.name.endsWith(".pdf");
+
+  return (
+    <div className="group flex items-center gap-2.5 rounded-lg border border-white/60 bg-white/40 px-3 py-2 dark:border-white/[0.06] dark:bg-white/[0.04]">
+      {isPdf ? (
+        <FileType2 className="h-4 w-4 shrink-0 text-red-500" />
+      ) : (
+        <FileIcon className="h-4 w-4 shrink-0 text-blue-500" />
+      )}
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-xs font-medium text-zinc-800 dark:text-zinc-200">{file.name}</p>
+        <p className="text-[10px] text-zinc-400 dark:text-zinc-500">{formatBytes(file.size)}</p>
+      </div>
+      <a
+        href={file.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="shrink-0 rounded p-1 text-zinc-400 hover:text-indigo-500 dark:hover:text-indigo-400"
+        title="Open / download"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <Download className="h-3.5 w-3.5" />
+      </a>
+      <button
+        onClick={() => onDelete(file.id)}
+        className="shrink-0 rounded p-1 text-zinc-300 hover:text-red-500 dark:text-zinc-600 dark:hover:text-red-400"
+        title="Remove file"
+      >
+        <X className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Pillar card (inline edit)
@@ -262,6 +324,10 @@ function GuideCard({
   const [content, setContent] = useState(guide.content);
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [files, setFiles] = useState<GuideFile[]>(guide.files ?? []);
+  const [uploading, setUploading] = useState<string[]>([]); // filenames being uploaded
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const catConfig = GUIDE_CATEGORIES.find((c) => c.id === guide.category) ?? GUIDE_CATEGORIES[GUIDE_CATEGORIES.length - 1];
   const CategoryIcon = catConfig.icon;
@@ -276,7 +342,7 @@ function GuideCard({
       });
       const data = await res.json();
       if (data.guide) {
-        onUpdated(data.guide);
+        onUpdated({ ...data.guide, files });
         setEditing(false);
         toast.success("Guide saved");
       } else {
@@ -298,12 +364,67 @@ function GuideCard({
     }
   };
 
+  const uploadFiles = async (fileList: FileList | null) => {
+    if (!fileList || fileList.length === 0) return;
+    const toUpload = Array.from(fileList);
+
+    for (const file of toUpload) {
+      const ext = "." + (file.name.split(".").pop()?.toLowerCase() ?? "");
+      if (![".pdf", ".md", ".markdown"].includes(ext)) {
+        toast.error(`${file.name} — only .pdf and .md files are allowed`);
+        continue;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error(`${file.name} — file must be under 10 MB`);
+        continue;
+      }
+
+      setUploading((prev) => [...prev, file.name]);
+      try {
+        const fd = new FormData();
+        fd.append("file", file);
+        const res = await fetch(`/api/strategy/guides/${guide.id}/files`, {
+          method: "POST",
+          body: fd,
+        });
+        const data = await res.json();
+        if (data.file) {
+          setFiles((prev) => [...prev, data.file]);
+          toast.success(`${file.name} uploaded`);
+        } else {
+          toast.error(data.error ?? `Failed to upload ${file.name}`);
+        }
+      } catch {
+        toast.error(`Failed to upload ${file.name}`);
+      } finally {
+        setUploading((prev) => prev.filter((n) => n !== file.name));
+      }
+    }
+  };
+
+  const handleDeleteFile = async (fileId: string) => {
+    try {
+      const res = await fetch(`/api/strategy/guides/${guide.id}/files/${fileId}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setFiles((prev) => prev.filter((f) => f.id !== fileId));
+        toast.success("File removed");
+      } else {
+        toast.error("Failed to remove file");
+      }
+    } catch {
+      toast.error("Failed to remove file");
+    }
+  };
+
   const preview = guide.content.split("\n").filter(Boolean).slice(0, 2).join(" · ");
 
   return (
     <div className="rounded-xl border glass-card">
       <div className="p-4">
         {editing ? (
+          /* ── Edit mode ── */
           <div className="space-y-3">
             <input
               autoFocus
@@ -339,7 +460,9 @@ function GuideCard({
             </div>
           </div>
         ) : (
+          /* ── View mode ── */
           <>
+            {/* Header row */}
             <div className="mb-2 flex items-start justify-between gap-2">
               <div className="flex items-start gap-2 min-w-0">
                 <CategoryIcon className={`mt-0.5 h-4 w-4 shrink-0 ${catConfig.color}`} />
@@ -351,7 +474,7 @@ function GuideCard({
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-1">
-                <button onClick={() => setEditing(true)} className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300">
+                <button onClick={() => setEditing(true)} className="rounded p-1 text-zinc-400 hover:bg-white/50 hover:text-zinc-600 dark:hover:bg-white/[0.08] dark:hover:text-zinc-300" title="Edit guide">
                   <Pencil className="h-3.5 w-3.5" />
                 </button>
                 {confirmDelete ? (
@@ -360,13 +483,14 @@ function GuideCard({
                     <button onClick={() => setConfirmDelete(false)} className="rounded px-1.5 py-0.5 text-xs text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800">No</button>
                   </div>
                 ) : (
-                  <button onClick={() => setConfirmDelete(true)} className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-red-500 dark:hover:bg-zinc-800 dark:hover:text-red-400">
+                  <button onClick={() => setConfirmDelete(true)} className="rounded p-1 text-zinc-400 hover:bg-white/50 hover:text-red-500 dark:hover:bg-white/[0.08] dark:hover:text-red-400" title="Delete guide">
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 )}
               </div>
             </div>
 
+            {/* Written content */}
             {guide.content ? (
               <>
                 {!expanded && preview && (
@@ -383,14 +507,105 @@ function GuideCard({
                   onClick={() => setExpanded(!expanded)}
                   className="mt-2 flex items-center gap-1 text-xs text-zinc-400 hover:text-indigo-500 dark:hover:text-indigo-400"
                 >
-                  {expanded ? <><ChevronUp className="h-3 w-3" /> Collapse</> : <><ChevronDown className="h-3 w-3" /> Read guide</>}
+                  {expanded ? <><ChevronUp className="h-3 w-3" /> Collapse</> : <><ChevronDown className="h-3 w-3" /> Read notes</>}
                 </button>
               </>
             ) : (
-              <button onClick={() => setEditing(true)} className="mt-2 text-xs text-zinc-400 hover:text-indigo-500 dark:hover:text-indigo-400">
-                + Add content
+              <button onClick={() => setEditing(true)} className="mt-1 text-xs text-zinc-400 hover:text-indigo-500 dark:hover:text-indigo-400">
+                + Add notes
               </button>
             )}
+
+            {/* ── Files section ─────────────────────────────────────── */}
+            <div className="mt-4 border-t border-white/60 pt-3 dark:border-white/[0.06]">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                  <FileText className="h-3.5 w-3.5" />
+                  Files
+                  {files.length > 0 && (
+                    <span className="rounded-full bg-white/60 px-1.5 py-0.5 text-[10px] font-medium text-zinc-600 dark:bg-white/[0.08] dark:text-zinc-400">
+                      {files.length}
+                    </span>
+                  )}
+                </span>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-zinc-500 hover:bg-white/50 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-white/[0.08] dark:hover:text-zinc-300"
+                >
+                  <Upload className="h-3 w-3" /> Upload
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.md,.markdown"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => uploadFiles(e.target.files)}
+                />
+              </div>
+
+              {/* Drop zone (shown when no files and no uploads in progress) */}
+              {files.length === 0 && uploading.length === 0 && (
+                <div
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={(e) => { e.preventDefault(); setDragOver(false); uploadFiles(e.dataTransfer.files); }}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`cursor-pointer rounded-lg border-2 border-dashed px-4 py-5 text-center transition-colors ${
+                    dragOver
+                      ? "border-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20"
+                      : "border-white/50 hover:border-indigo-300 hover:bg-white/30 dark:border-white/[0.08] dark:hover:border-indigo-700 dark:hover:bg-white/[0.04]"
+                  }`}
+                >
+                  <Upload className="mx-auto mb-1.5 h-5 w-5 text-zinc-400 dark:text-zinc-500" />
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    Drag &amp; drop or <span className="text-indigo-500 dark:text-indigo-400">browse</span>
+                  </p>
+                  <p className="mt-0.5 text-[10px] text-zinc-400 dark:text-zinc-500">.pdf and .md · max 10 MB</p>
+                </div>
+              )}
+
+              {/* File list */}
+              {files.length > 0 && (
+                <div className="space-y-1.5">
+                  {files.map((f) => (
+                    <FileRow key={f.id} file={f} onDelete={handleDeleteFile} />
+                  ))}
+                </div>
+              )}
+
+              {/* Upload-in-progress indicators */}
+              {uploading.length > 0 && (
+                <div className="mt-1.5 space-y-1.5">
+                  {uploading.map((name) => (
+                    <div key={name} className="flex items-center gap-2.5 rounded-lg border border-white/60 bg-white/40 px-3 py-2 dark:border-white/[0.06] dark:bg-white/[0.04]">
+                      <Loader2 className="h-4 w-4 shrink-0 animate-spin text-indigo-400" />
+                      <p className="truncate text-xs text-zinc-500 dark:text-zinc-400">{name}</p>
+                      <span className="ml-auto text-[10px] text-zinc-400">Uploading…</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Add more button when files exist */}
+              {files.length > 0 && (
+                <div
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={(e) => { e.preventDefault(); setDragOver(false); uploadFiles(e.dataTransfer.files); }}
+                  className={`mt-1.5 cursor-pointer rounded-lg border border-dashed px-3 py-2 text-center transition-colors ${
+                    dragOver
+                      ? "border-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20"
+                      : "border-white/50 hover:border-indigo-300 dark:border-white/[0.08] dark:hover:border-indigo-700"
+                  }`}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <p className="text-[10px] text-zinc-400 dark:text-zinc-500">
+                    + drag &amp; drop or click to add another file
+                  </p>
+                </div>
+              )}
+            </div>
           </>
         )}
       </div>
@@ -418,7 +633,7 @@ function NewGuideModal({ onCreated, onClose }: { onCreated: (g: StrategyGuide) =
         body: JSON.stringify({ title: title.trim(), category, content }),
       });
       const data = await res.json();
-      if (data.guide) { onCreated(data.guide); onClose(); }
+      if (data.guide) { onCreated({ ...data.guide, files: [] }); onClose(); }
     } catch { /* ignore */ }
     finally { setSaving(false); }
   };
@@ -563,7 +778,8 @@ export default function StrategyPage() {
       fetch("/api/strategy/guides").then((r) => r.json()),
     ]).then(([pd, gd]) => {
       setPillars(pd.pillars ?? []);
-      setGuides(gd.guides ?? []);
+      // Normalise files field: Prisma Json may arrive as null on existing rows
+      setGuides((gd.guides ?? []).map((g: StrategyGuide) => ({ ...g, files: Array.isArray(g.files) ? g.files : [] })));
     }).finally(() => setLoading(false));
   }, []);
 
