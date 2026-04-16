@@ -623,9 +623,12 @@ function NewGuideModal({ onCreated, onClose }: { onCreated: (g: StrategyGuide) =
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
 
+  const [error, setError] = useState<string | null>(null);
+
   const handleCreate = async () => {
     if (!title.trim()) return;
     setSaving(true);
+    setError(null);
     try {
       const res = await fetch("/api/strategy/guides", {
         method: "POST",
@@ -633,8 +636,20 @@ function NewGuideModal({ onCreated, onClose }: { onCreated: (g: StrategyGuide) =
         body: JSON.stringify({ title: title.trim(), category, content }),
       });
       const data = await res.json();
-      if (data.guide) { onCreated({ ...data.guide, files: [] }); onClose(); }
-    } catch { /* ignore */ }
+      if (data.guide) {
+        onCreated({ ...data.guide, files: Array.isArray(data.guide.files) ? data.guide.files : [] });
+        onClose();
+        toast.success("Guide created");
+      } else {
+        const msg = data.error ? JSON.stringify(data.error) : "Failed to create guide";
+        setError(msg);
+        toast.error("Failed to create guide");
+      }
+    } catch (err) {
+      const msg = String(err);
+      setError(msg);
+      toast.error("Failed to create guide");
+    }
     finally { setSaving(false); }
   };
 
@@ -673,6 +688,11 @@ function NewGuideModal({ onCreated, onClose }: { onCreated: (g: StrategyGuide) =
             className="w-full resize-none rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-700 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 font-mono"
           />
         </div>
+        {error && (
+          <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-950/30 dark:text-red-400">
+            {error}
+          </p>
+        )}
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
           <Button onClick={handleCreate} disabled={!title.trim() || saving}>
