@@ -189,18 +189,22 @@ export function NotificationsPopover({ collapsed }: { collapsed: boolean }) {
         )}
       </button>
 
-      {/* Panel */}
+      {/* Panel — anchored just to the right of the sidebar so it never clips sidebar elements */}
       {open && (
         <div
           ref={panelRef}
           className={cn(
             "fixed z-50 flex flex-col",
-            "bottom-4 left-4",
             "w-[360px] max-h-[520px]",
             "rounded-2xl border border-white/60 dark:border-white/[0.08]",
             "glass-card shadow-2xl shadow-black/10 dark:shadow-black/40",
             "overflow-hidden"
           )}
+          style={{
+            bottom: "16px",
+            // sidebar is w-16 (64px) collapsed or w-64 (256px) expanded; add 8px gap
+            left: collapsed ? "72px" : "264px",
+          }}
         >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-white/60 px-4 py-3 dark:border-white/[0.08]">
