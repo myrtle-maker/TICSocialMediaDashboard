@@ -301,6 +301,39 @@ model BoardCard {
   @@map("board_cards")
 }
 
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         String   @default("member") // "admin" | "member"
+  avatarColor  String   @default("#6366f1")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sentMessages     DirectMessage[] @relation("sender")
+  receivedMessages DirectMessage[] @relation("recipient")
+
+  @@map("users")
+}
+
+model DirectMessage {
+  id          String    @id @default(cuid())
+  senderId    String
+  recipientId String
+  body        String
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  sender    User @relation("sender",    fields: [senderId],    references: [id], onDelete: Cascade)
+  recipient User @relation("recipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([recipientId, readAt])
+  @@index([senderId])
+  @@index([createdAt])
+  @@map("direct_messages")
+}
+
 model ScheduledPost {
   id          String   @id @default(cuid())
   platform    String

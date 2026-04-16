@@ -22,6 +22,8 @@ import {
   MessageSquare,
   Eye,
   EyeOff,
+  Users,
+  Crown,
 } from "lucide-react";
 import { useFilters } from "@/components/filters/filter-context";
 
@@ -80,6 +82,20 @@ export default function SettingsPage() {
   const [slackTesting, setSlackTesting] = useState(false);
   const [slackTestResult, setSlackTestResult] = useState<{ ok: boolean; msg: string } | null>(null);
 
+  // Team management state
+  const [teamUsers, setTeamUsers] = useState<
+    { id: string; name: string; email: string; role: string; avatarColor: string }[]
+  >([]);
+  const [teamLoading, setTeamLoading] = useState(false);
+  const [newMemberName, setNewMemberName] = useState("");
+  const [newMemberEmail, setNewMemberEmail] = useState("");
+  const [newMemberPassword, setNewMemberPassword] = useState("");
+  const [newMemberRole, setNewMemberRole] = useState("member");
+  const [addingMember, setAddingMember] = useState(false);
+  const [teamError, setTeamError] = useState("");
+  const [teamSuccess, setTeamSuccess] = useState("");
+  const [currentUserRole, setCurrentUserRole] = useState("");
+
   const [scraping, setScraping] = useState(false);
   const [scrapeResult, setScrapeResult] = useState<{
     success: boolean;
@@ -126,6 +142,18 @@ export default function SettingsPage() {
     fetch("/api/accounts")
       .then((r) => r.json())
       .then((data) => setAccountCount(data.accounts?.length ?? 0))
+      .catch(() => {});
+
+    // Load team members
+    fetch("/api/users")
+      .then((r) => r.json())
+      .then((data) => setTeamUsers(data.users ?? []))
+      .catch(() => {});
+
+    // Load current user role
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((data) => setCurrentUserRole(data.user?.role ?? ""))
       .catch(() => {});
   }, []);
 
@@ -422,6 +450,66 @@ export default function SettingsPage() {
       setSendingDigest(false);
       setTimeout(() => setDigestResult(null), 5000);
     }
+  };
+
+  const loadTeam = async () => {
+    setTeamLoading(true);
+    try {
+      const r = await fetch("/api/users");
+      const data = await r.json();
+      setTeamUsers(data.users ?? []);
+    } catch {} finally {
+      setTeamLoading(false);
+    }
+  };
+
+  const handleAddMember = async () => {
+    setTeamError("");
+    setTeamSuccess("");
+    if (!newMemberName.trim() || !newMemberEmail.trim() || !newMemberPassword) {
+      setTeamError("Name, email, and password are all required");
+      return;
+    }
+    if (newMemberPassword.length < 8) {
+      setTeamError("Password must be at least 8 characters");
+      return;
+    }
+    setAddingMember(true);
+    try {
+      const res = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newMemberName.trim(),
+          email: newMemberEmail.trim(),
+          password: newMemberPassword,
+          role: newMemberRole,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setTeamError(data.error || "Failed to add member");
+      } else {
+        setTeamSuccess(`${newMemberName.trim()} added`);
+        setNewMemberName("");
+        setNewMemberEmail("");
+        setNewMemberPassword("");
+        setNewMemberRole("member");
+        setTimeout(() => setTeamSuccess(""), 3000);
+        await loadTeam();
+      }
+    } catch {
+      setTeamError("Failed to add member");
+    } finally {
+      setAddingMember(false);
+    }
+  };
+
+  const handleRemoveMember = async (id: string) => {
+    try {
+      await fetch(`/api/users/${id}`, { method: "DELETE" });
+      await loadTeam();
+    } catch {}
   };
 
   const handleSaveSlack = async () => {
@@ -1069,6 +1157,123 @@ export default function SettingsPage() {
               <AlertTriangle className="mr-1 h-3 w-3" />
               Add email subscribers above to receive alerts.
             </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Team Management */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+            <Users className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
+            Team Members
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Member list */}
+          {teamLoading ? (
+            <div className="flex items-center gap-2 text-xs text-zinc-400">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Loading…
+            </div>
+          ) : teamUsers.length === 0 ? (
+            <p className="text-xs text-zinc-400 dark:text-zinc-500">No team members yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {teamUsers.map((u) => (
+                <div
+                  key={u.id}
+                  className="flex items-center justify-between rounded-lg border border-zinc-200 p-2.5 dark:border-zinc-700"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white"
+                      style={{ backgroundColor: u.avatarColor }}
+                    >
+                      {u.name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{u.name}</span>
+                        {u.role === "admin" && (
+                          <Crown className="h-3 w-3 text-amber-500" />
+                        )}
+                      </div>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">{u.email}</p>
+                    </div>
+                  </div>
+                  {currentUserRole === "admin" && (
+                    <button
+                      onClick={() => handleRemoveMember(u.id)}
+                      className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-red-500 dark:hover:bg-zinc-800 dark:hover:text-red-400"
+                      title="Remove member"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Add member form — admin only */}
+          {currentUserRole === "admin" && (
+            <div className="space-y-2 border-t border-zinc-100 pt-3 dark:border-zinc-800">
+              <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Invite team member</p>
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  placeholder="Full name"
+                  value={newMemberName}
+                  onChange={(e) => { setNewMemberName(e.target.value); setTeamError(""); }}
+                  className="rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-indigo-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
+                />
+                <input
+                  type="email"
+                  placeholder="Email address"
+                  value={newMemberEmail}
+                  onChange={(e) => { setNewMemberEmail(e.target.value); setTeamError(""); }}
+                  className="rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-indigo-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
+                />
+                <input
+                  type="password"
+                  placeholder="Temporary password (8+ chars)"
+                  value={newMemberPassword}
+                  onChange={(e) => { setNewMemberPassword(e.target.value); setTeamError(""); }}
+                  className="rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-indigo-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
+                />
+                <select
+                  value={newMemberRole}
+                  onChange={(e) => setNewMemberRole(e.target.value)}
+                  className="rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-indigo-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
+                >
+                  <option value="member">Member</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={handleAddMember} disabled={addingMember}>
+                  {addingMember ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Plus className="h-3.5 w-3.5" />
+                  )}
+                  Add member
+                </Button>
+                {teamError && (
+                  <p className="flex items-center gap-1 text-xs text-red-600 dark:text-red-400">
+                    <AlertTriangle className="h-3 w-3" />
+                    {teamError}
+                  </p>
+                )}
+                {teamSuccess && (
+                  <p className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+                    <Check className="h-3 w-3" />
+                    {teamSuccess}
+                  </p>
+                )}
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>
