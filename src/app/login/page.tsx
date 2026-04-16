@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BarChart3, Loader2, Eye, EyeOff } from "lucide-react";
 
-type Mode = "loading" | "login" | "setup";
+type Mode = "loading" | "login" | "register" | "setup";
 
 export default function LoginPage() {
   const [mode, setMode] = useState<Mode>("loading");
@@ -32,17 +32,35 @@ export default function LoginPage() {
     setTimeout(() => setShake(false), 500);
   };
 
+  function clearForm() {
+    setName("");
+    setEmail("");
+    setPassword("");
+    setError("");
+  }
+
+  function switchTo(next: "login" | "register") {
+    clearForm();
+    setMode(next);
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
 
     try {
-      const endpoint = mode === "setup" ? "/api/auth/setup" : "/api/auth/login";
-      const payload =
+      const endpoint =
         mode === "setup"
-          ? { name: name.trim(), email: email.trim(), password }
-          : { email: email.trim(), password };
+          ? "/api/auth/setup"
+          : mode === "register"
+          ? "/api/auth/register"
+          : "/api/auth/login";
+
+      const payload =
+        mode === "login"
+          ? { email: email.trim(), password }
+          : { name: name.trim(), email: email.trim(), password };
 
       const res = await fetch(endpoint, {
         method: "POST",
@@ -76,7 +94,17 @@ export default function LoginPage() {
     );
   }
 
-  const isSetup = mode === "setup";
+  const isSetup    = mode === "setup";
+  const isRegister = mode === "register";
+  const needsName  = isSetup || isRegister;
+
+  const title    = isSetup    ? "Create admin account" : isRegister ? "Create account" : "Welcome back";
+  const subtitle = isSetup    ? "Create your admin account to get started"
+                 : isRegister ? "Join your team on TIC Social Insights"
+                 :              "Sign in to your account";
+  const submitLabel = isSetup    ? "Create account & enter"
+                    : isRegister ? "Create account"
+                    :              "Sign in";
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 dark:bg-zinc-950">
@@ -89,9 +117,7 @@ export default function LoginPage() {
             <h1 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
               TIC Social Insights
             </h1>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              {isSetup ? "Create your admin account to get started" : "Sign in to your account"}
-            </p>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">{subtitle}</p>
           </div>
           {isSetup && (
             <div className="w-full rounded-lg bg-indigo-50 px-3 py-2 text-center text-xs text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300">
@@ -102,7 +128,7 @@ export default function LoginPage() {
 
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-3">
-            {isSetup && (
+            {needsName && (
               <div>
                 <label className="mb-1 block text-xs font-medium text-zinc-700 dark:text-zinc-300">
                   Your name
@@ -127,21 +153,24 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setError(""); }}
                 placeholder="you@tic.com"
-                autoFocus={!isSetup}
+                autoFocus={!needsName}
                 className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 outline-none transition-colors focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
               />
             </div>
 
             <div>
               <label className="mb-1 block text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                Password {isSetup && <span className="font-normal text-zinc-400">(min 8 chars)</span>}
+                Password{" "}
+                {needsName && (
+                  <span className="font-normal text-zinc-400">(min 8 chars)</span>
+                )}
               </label>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => { setPassword(e.target.value); setError(""); }}
-                  placeholder={isSetup ? "Create a password" : "Password"}
+                  placeholder={needsName ? "Create a password" : "Password"}
                   className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 pr-9 text-sm text-zinc-900 placeholder-zinc-400 outline-none transition-colors focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                 />
                 <button
@@ -161,18 +190,41 @@ export default function LoginPage() {
 
             <Button
               type="submit"
-              disabled={loading || !email || !password || (isSetup && !name)}
+              disabled={loading || !email || !password || (needsName && !name)}
               className="w-full"
             >
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : isSetup ? (
-                "Create account & enter"
-              ) : (
-                "Sign in"
-              )}
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : submitLabel}
             </Button>
           </form>
+
+          {/* Toggle between login and register (hidden during first-run setup) */}
+          {!isSetup && (
+            <p className="mt-4 text-center text-xs text-zinc-500 dark:text-zinc-400">
+              {isRegister ? (
+                <>
+                  Already have an account?{" "}
+                  <button
+                    type="button"
+                    onClick={() => switchTo("login")}
+                    className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+                  >
+                    Sign in
+                  </button>
+                </>
+              ) : (
+                <>
+                  Don&apos;t have an account?{" "}
+                  <button
+                    type="button"
+                    onClick={() => switchTo("register")}
+                    className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+                  >
+                    Create one
+                  </button>
+                </>
+              )}
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>
