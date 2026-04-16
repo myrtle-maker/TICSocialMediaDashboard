@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { notify, scrapeCompleteBlocks } from "@/lib/slack";
 import { getRunStatus, getDatasetItems } from "@/lib/apify/rest";
 import {
   transformTikTok,
@@ -171,6 +172,12 @@ export async function POST() {
     }
 
     const totalCollected = results.reduce((s, r) => s + r.postsCollected, 0);
+
+    // Notify Slack when at least one account's data came in
+    const finishedCount = results.filter((r) => r.postsCollected > 0).length;
+    if (totalCollected > 0) {
+      notify("scrapeComplete", scrapeCompleteBlocks(totalCollected, finishedCount));
+    }
 
     return NextResponse.json({ success: true, totalCollected, results });
   } catch (err) {

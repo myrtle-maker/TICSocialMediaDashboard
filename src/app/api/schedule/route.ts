@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createScheduledPostSchema } from "@/lib/schedule-schema";
+import { notify, postScheduledBlocks } from "@/lib/slack";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +62,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    notify("postScheduled", postScheduledBlocks(post.platform, post.contentType, post.scheduledAt.toISOString()));
     return NextResponse.json({ post }, { status: 201 });
   } catch (err) {
     console.error("Failed to create scheduled post:", err);

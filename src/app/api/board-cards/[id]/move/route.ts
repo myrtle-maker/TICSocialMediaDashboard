@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { notify, cardMovedBlocks } from "@/lib/slack";
 
 const moveSchema = z.object({
   toListId: z.string(),
@@ -59,6 +60,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             prisma.boardCard.update({ where: { id: c.id }, data: { sortOrder: i >= newIndex ? i + 1 : i } })
           ),
       ]);
+    }
+
+    // Notify Slack on cross-list moves (progress in the workflow)
+    if (fromListId !== toListId) {
+      const lists = await prisma.boardList
+        .findMany({ where: { id: { in: [fromListId, toListId] } }, select: { id: true, name: true } })
+        .catch(() => [] as { id: string; name: string }[]);
+      const fromName = lists.find((l) => l.id === fromListId)?.name ?? "Unknown";
+      const toName = lists.find((l) => l.id === toListId)?.name ?? "Unknown";
+      notify("cardMoved", cardMovedBlocks(card.title, fromName, toName));
     }
 
     return NextResponse.json({ success: true });

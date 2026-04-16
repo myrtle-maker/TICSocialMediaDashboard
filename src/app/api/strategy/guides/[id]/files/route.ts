@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { put } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
+import { notify, fileUploadedBlocks } from "@/lib/slack";
 
 const ALLOWED_EXTS = [".pdf", ".md", ".markdown"];
 const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -46,9 +47,9 @@ export async function POST(
       return NextResponse.json({ error: "Guide not found" }, { status: 404 });
     }
 
-    // Upload to Vercel Blob
+    // Upload to Vercel Blob (private — files may contain sensitive data)
     const blob = await put(`strategy-guides/${id}/${Date.now()}-${file.name}`, file, {
-      access: "public",
+      access: "private",
       contentType: guessContentType(file.name),
     });
 
@@ -67,6 +68,7 @@ export async function POST(
       data: { files: [...existing, newFile] },
     });
 
+    notify("fileUploaded", fileUploadedBlocks(newFile.name, guide.title));
     return NextResponse.json({ guide: updated, file: newFile }, { status: 201 });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });

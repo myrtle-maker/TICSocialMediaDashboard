@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { notify, guideCreatedBlocks } from "@/lib/slack";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,7 @@ export async function POST(req: NextRequest) {
     const guide = await prisma.strategyGuide.create({
       data: { ...parsed.data, sortOrder },
     });
+    notify("guideCreated", guideCreatedBlocks(guide.title, guide.category));
     return NextResponse.json({ guide }, { status: 201 });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });

@@ -19,6 +19,9 @@ import {
   Plus,
   Target,
   Bell,
+  MessageSquare,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { useFilters } from "@/components/filters/filter-context";
 
@@ -61,6 +64,22 @@ export default function SettingsPage() {
   const [sendingAlerts, setSendingAlerts] = useState(false);
   const [alertsResult, setAlertsResult] = useState<string | null>(null);
 
+  // Slack state
+  const [slackWebhookUrl, setSlackWebhookUrl] = useState("");
+  const [slackWebhookVisible, setSlackWebhookVisible] = useState(false);
+  const [slackEvents, setSlackEvents] = useState<Record<string, boolean>>({
+    guideCreated: true,
+    fileUploaded: true,
+    cardMoved: true,
+    ideaPromoted: true,
+    postScheduled: true,
+    scrapeComplete: true,
+    performanceAlert: true,
+  });
+  const [slackSaving, setSlackSaving] = useState(false);
+  const [slackTesting, setSlackTesting] = useState(false);
+  const [slackTestResult, setSlackTestResult] = useState<{ ok: boolean; msg: string } | null>(null);
+
   const [scraping, setScraping] = useState(false);
   const [scrapeResult, setScrapeResult] = useState<{
     success: boolean;
@@ -84,6 +103,10 @@ export default function SettingsPage() {
         }
         if (s.scrapeFrequency) setScrapeFrequency(s.scrapeFrequency);
         if (s.postsPerScrape) setPostsPerScrape(s.postsPerScrape);
+        if (s.slackWebhookUrl) setSlackWebhookUrl(s.slackWebhookUrl);
+        if (s.slackEvents) {
+          try { setSlackEvents((prev) => ({ ...prev, ...JSON.parse(s.slackEvents) })); } catch {}
+        }
       })
       .catch(() => {});
 
@@ -317,6 +340,16 @@ export default function SettingsPage() {
     posts: "Posts",
   };
 
+  const SLACK_EVENT_LABELS: { key: string; label: string; description: string }[] = [
+    { key: "guideCreated",     label: "Guide created",          description: "A new strategy guide is added" },
+    { key: "fileUploaded",     label: "File uploaded",           description: "A PDF or .md file is attached to a guide" },
+    { key: "cardMoved",        label: "Card moved",              description: "A workflow card moves to a different list" },
+    { key: "ideaPromoted",     label: "Idea promoted",           description: "A post idea is promoted to the schedule" },
+    { key: "postScheduled",    label: "Post scheduled",          description: "A new post is added to the content calendar" },
+    { key: "scrapeComplete",   label: "Scrape complete",         description: "A data collection run finishes with results" },
+    { key: "performanceAlert", label: "Performance alert",       description: "A post over/underperforms vs account average" },
+  ];
+
   const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   const loadSubscribers = async () => {
@@ -388,6 +421,43 @@ export default function SettingsPage() {
     } finally {
       setSendingDigest(false);
       setTimeout(() => setDigestResult(null), 5000);
+    }
+  };
+
+  const handleSaveSlack = async () => {
+    setSlackSaving(true);
+    try {
+      await Promise.all([
+        saveSetting("slackWebhookUrl", slackWebhookUrl.trim()),
+        saveSetting("slackEvents", JSON.stringify(slackEvents)),
+      ]);
+      showSaved();
+    } catch {} finally {
+      setSlackSaving(false);
+    }
+  };
+
+  const handleTestSlack = async () => {
+    if (!slackWebhookUrl.trim()) return;
+    setSlackTesting(true);
+    setSlackTestResult(null);
+    try {
+      const res = await fetch("/api/slack/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ webhookUrl: slackWebhookUrl.trim() }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSlackTestResult({ ok: true, msg: "Test message sent! Check your Slack channel." });
+      } else {
+        setSlackTestResult({ ok: false, msg: data.error || "Failed to send test message" });
+      }
+    } catch {
+      setSlackTestResult({ ok: false, msg: "Failed to reach Slack" });
+    } finally {
+      setSlackTesting(false);
+      setTimeout(() => setSlackTestResult(null), 6000);
     }
   };
 
@@ -734,6 +804,118 @@ export default function SettingsPage() {
               <p className="text-xs text-zinc-600 dark:text-zinc-400">{digestResult}</p>
             )}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Slack Notifications */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+            <MessageSquare className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
+            Slack Notifications
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            Get notified in Slack when files are uploaded, posts are scheduled, and more.{" "}
+            Create an{" "}
+            <a
+              href="https://api.slack.com/messaging/webhooks"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-indigo-500 underline hover:text-indigo-600"
+            >
+              Incoming Webhook
+            </a>{" "}
+            in your Slack workspace and paste the URL below.
+          </p>
+
+          {/* Webhook URL */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+              Webhook URL
+            </label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <input
+                  type={slackWebhookVisible ? "text" : "password"}
+                  value={slackWebhookUrl}
+                  onChange={(e) => setSlackWebhookUrl(e.target.value)}
+                  placeholder="https://hooks.slack.com/services/..."
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 pr-9 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setSlackWebhookVisible((v) => !v)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                  title={slackWebhookVisible ? "Hide URL" : "Show URL"}
+                >
+                  {slackWebhookVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleTestSlack}
+                disabled={slackTesting || !slackWebhookUrl.trim()}
+              >
+                {slackTesting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Test"}
+              </Button>
+            </div>
+            {slackTestResult && (
+              <p
+                className={`mt-1.5 flex items-center gap-1 text-xs ${
+                  slackTestResult.ok
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-red-600 dark:text-red-400"
+                }`}
+              >
+                {slackTestResult.ok ? (
+                  <Check className="h-3 w-3" />
+                ) : (
+                  <AlertTriangle className="h-3 w-3" />
+                )}
+                {slackTestResult.msg}
+              </p>
+            )}
+          </div>
+
+          {/* Event toggles */}
+          <div>
+            <p className="mb-2 text-xs font-medium text-zinc-700 dark:text-zinc-300">
+              Notify me when…
+            </p>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {SLACK_EVENT_LABELS.map(({ key, label, description }) => (
+                <label
+                  key={key}
+                  className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-zinc-100 bg-zinc-50/50 p-2.5 hover:border-zinc-200 dark:border-zinc-800 dark:bg-zinc-800/30 dark:hover:border-zinc-700"
+                >
+                  <input
+                    type="checkbox"
+                    checked={slackEvents[key] !== false}
+                    onChange={(e) =>
+                      setSlackEvents((prev) => ({ ...prev, [key]: e.target.checked }))
+                    }
+                    className="mt-0.5 h-3.5 w-3.5 rounded border-zinc-300 accent-indigo-500"
+                  />
+                  <div>
+                    <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">{label}</p>
+                    <p className="text-[10px] text-zinc-400 dark:text-zinc-500">{description}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <Button onClick={handleSaveSlack} disabled={slackSaving} size="sm">
+            {slackSaving ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Check className="h-3.5 w-3.5" />
+            )}
+            Save Slack settings
+          </Button>
         </CardContent>
       </Card>
 

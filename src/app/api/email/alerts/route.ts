@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { prisma } from "@/lib/prisma";
+import { notify, performanceAlertBlocks } from "@/lib/slack";
 
 // ---------------------------------------------------------------------------
 // Performance alert logic — exported for cron reuse
@@ -113,6 +114,11 @@ export async function sendAlerts(): Promise<{ sent: number; errors: string[]; ch
       errors.push(`${sub.email}: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
+
+  // Send Slack notification alongside emails
+  const overCount = alerts.filter((a) => a.type === "overperforming").length;
+  const underCount = alerts.filter((a) => a.type === "underperforming").length;
+  notify("performanceAlert", performanceAlertBlocks(alerts.length, overCount, underCount));
 
   return { sent, errors, checked: recentPosts.length };
 }
