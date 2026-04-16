@@ -88,12 +88,15 @@ function formatBytes(bytes: number): string {
 
 function FileRow({
   file,
+  guideId,
   onDelete,
 }: {
   file: GuideFile;
+  guideId: string;
   onDelete: (id: string) => void;
 }) {
   const isPdf = file.contentType === "application/pdf" || file.name.endsWith(".pdf");
+  const downloadHref = `/api/strategy/guides/${guideId}/files/${file.id}/download`;
 
   return (
     <div className="group flex items-center gap-2.5 rounded-lg border border-white/60 bg-white/40 px-3 py-2 dark:border-white/[0.06] dark:bg-white/[0.04]">
@@ -107,11 +110,9 @@ function FileRow({
         <p className="text-[10px] text-zinc-400 dark:text-zinc-500">{formatBytes(file.size)}</p>
       </div>
       <a
-        href={file.url}
-        target="_blank"
-        rel="noopener noreferrer"
+        href={downloadHref}
         className="shrink-0 rounded p-1 text-zinc-400 hover:text-indigo-500 dark:hover:text-indigo-400"
-        title="Open / download"
+        title="Download"
         onClick={(e) => e.stopPropagation()}
       >
         <Download className="h-3.5 w-3.5" />
@@ -569,7 +570,7 @@ function GuideCard({
               {files.length > 0 && (
                 <div className="space-y-1.5">
                   {files.map((f) => (
-                    <FileRow key={f.id} file={f} onDelete={handleDeleteFile} />
+                    <FileRow key={f.id} file={f} guideId={guide.id} onDelete={handleDeleteFile} />
                   ))}
                 </div>
               )}
