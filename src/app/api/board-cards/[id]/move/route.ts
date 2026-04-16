@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { notify, cardMovedBlocks } from "@/lib/slack";
+import { inAppNotify } from "@/lib/in-app-notify";
 
 const moveSchema = z.object({
   toListId: z.string(),
@@ -70,6 +71,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       const fromName = lists.find((l) => l.id === fromListId)?.name ?? "Unknown";
       const toName = lists.find((l) => l.id === toListId)?.name ?? "Unknown";
       notify("cardMoved", cardMovedBlocks(card.title, fromName, toName));
+      inAppNotify("cardMoved", "Card moved", `"${card.title}" moved from ${fromName} → ${toName}`, "/workflow");
     }
 
     return NextResponse.json({ success: true });

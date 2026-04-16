@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createScheduledPostSchema } from "@/lib/schedule-schema";
 import { notify, postScheduledBlocks } from "@/lib/slack";
+import { inAppNotify } from "@/lib/in-app-notify";
 
 export const dynamic = "force-dynamic";
 
@@ -63,6 +64,8 @@ export async function POST(request: NextRequest) {
     });
 
     notify("postScheduled", postScheduledBlocks(post.platform, post.contentType, post.scheduledAt.toISOString()));
+    const postDate = post.scheduledAt.toLocaleDateString("en", { day: "numeric", month: "short", year: "numeric" });
+    inAppNotify("postScheduled", "Post scheduled", `${post.platform} ${post.contentType} on ${postDate}`, "/schedule");
     return NextResponse.json({ post }, { status: 201 });
   } catch (err) {
     console.error("Failed to create scheduled post:", err);

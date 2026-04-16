@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ThemeToggle } from "./theme-toggle";
+import { NotificationsPopover } from "./notifications-popover";
 import useSWR from "swr";
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -240,6 +241,7 @@ export function Sidebar() {
         </button>
         <div className="flex items-center justify-between">
           <ThemeToggle />
+          <NotificationsPopover collapsed={collapsed} />
           <button
             onClick={() => setCollapsed(!collapsed)}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}

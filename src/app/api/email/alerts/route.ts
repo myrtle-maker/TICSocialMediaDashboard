@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { prisma } from "@/lib/prisma";
 import { notify, performanceAlertBlocks } from "@/lib/slack";
+import { inAppNotify } from "@/lib/in-app-notify";
 
 // ---------------------------------------------------------------------------
 // Performance alert logic — exported for cron reuse
@@ -119,6 +120,11 @@ export async function sendAlerts(): Promise<{ sent: number; errors: string[]; ch
   const overCount = alerts.filter((a) => a.type === "overperforming").length;
   const underCount = alerts.filter((a) => a.type === "underperforming").length;
   notify("performanceAlert", performanceAlertBlocks(alerts.length, overCount, underCount));
+  const parts = [
+    overCount > 0 ? `${overCount} overperforming` : null,
+    underCount > 0 ? `${underCount} underperforming` : null,
+  ].filter(Boolean).join(", ");
+  inAppNotify("performanceAlert", "Performance alert", `${alerts.length} post${alerts.length !== 1 ? "s" : ""} flagged — ${parts}`, "/content");
 
   return { sent, errors, checked: recentPosts.length };
 }

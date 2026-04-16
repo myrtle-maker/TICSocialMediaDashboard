@@ -308,6 +308,7 @@ model User {
   passwordHash String
   role         String   @default("member") // "admin" | "member"
   avatarColor  String   @default("#6366f1")
+  lastNotificationsSeenAt DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -315,6 +316,18 @@ model User {
   receivedMessages DirectMessage[] @relation("recipient")
 
   @@map("users")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  event     String
+  title     String
+  body      String
+  href      String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("notifications")
 }
 
 model DirectMessage {

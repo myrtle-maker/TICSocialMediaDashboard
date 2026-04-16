@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { promoteIdeaSchema } from "@/lib/mindmap-schema";
 import { notify, ideaPromotedBlocks } from "@/lib/slack";
+import { inAppNotify } from "@/lib/in-app-notify";
 
 export async function POST(
   request: NextRequest,
@@ -38,6 +39,8 @@ export async function POST(
       "ideaPromoted",
       ideaPromotedBlocks(idea.title, scheduledPost.platform, scheduledPost.scheduledAt.toISOString())
     );
+    const schedDate = scheduledPost.scheduledAt.toLocaleDateString("en", { day: "numeric", month: "short", year: "numeric" });
+    inAppNotify("ideaPromoted", "Idea promoted to schedule", `"${idea.title}" → ${scheduledPost.platform} on ${schedDate}`, "/schedule");
     return NextResponse.json({ scheduledPost, idea });
   } catch (err) {
     console.error("[ideas/[id]/promote] POST error:", err);

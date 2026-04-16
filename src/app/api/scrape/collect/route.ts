@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { notify, scrapeCompleteBlocks } from "@/lib/slack";
+import { inAppNotify } from "@/lib/in-app-notify";
 import { getRunStatus, getDatasetItems } from "@/lib/apify/rest";
 import {
   transformTikTok,
@@ -177,6 +178,7 @@ export async function POST() {
     const finishedCount = results.filter((r) => r.postsCollected > 0).length;
     if (totalCollected > 0) {
       notify("scrapeComplete", scrapeCompleteBlocks(totalCollected, finishedCount));
+      inAppNotify("scrapeComplete", "Data collection complete", `${totalCollected.toLocaleString()} posts scraped across ${finishedCount} account${finishedCount !== 1 ? "s" : ""}`, "/content");
     }
 
     return NextResponse.json({ success: true, totalCollected, results });

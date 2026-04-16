@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { put } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
 import { notify, fileUploadedBlocks } from "@/lib/slack";
+import { inAppNotify } from "@/lib/in-app-notify";
 
 const ALLOWED_EXTS = [".pdf", ".md", ".markdown"];
 const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -69,6 +70,7 @@ export async function POST(
     });
 
     notify("fileUploaded", fileUploadedBlocks(newFile.name, guide.title));
+    inAppNotify("fileUploaded", "File uploaded", `"${newFile.name}" added to ${guide.title}`, "/strategy");
     return NextResponse.json({ guide: updated, file: newFile }, { status: 201 });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { notify, guideCreatedBlocks } from "@/lib/slack";
+import { inAppNotify } from "@/lib/in-app-notify";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,7 @@ export async function POST(req: NextRequest) {
       data: { ...parsed.data, sortOrder },
     });
     notify("guideCreated", guideCreatedBlocks(guide.title, guide.category));
+    inAppNotify("guideCreated", "New strategy guide", `"${guide.title}" added to ${guide.category}`, "/strategy");
     return NextResponse.json({ guide }, { status: 201 });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
